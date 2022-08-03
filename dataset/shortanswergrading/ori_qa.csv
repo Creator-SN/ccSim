@@ -1,0 +1,21 @@
+1	What is the role of a prototype program in problem solving?	To simulate the behaviour of portions of the desired software product. 
+2	What stages in the software life cycle are influenced by the testing stage?	The testing stage can influence both the coding stage (phase 5) and the solution refinement stage (phase 7) 
+3	What are the main advantages associated with object-oriented programming?	Abstraction and reusability.
+4	Where do C++ programs begin to execute?	At the main function.
+5	What is a variable?	A location in memory that can store a value.
+6	Where are variables declared in a C++ program?	Variables can be declared anywhere in a program. They can be declared inside a function (local variables) or outside the functions (global variables)
+7	What is the main difference between a while and a do...while statement?	The block inside a do...while statement will execute at least once.
+8	What is typically included in a class definition?	 Data members (attributes) and member functions.
+9	What is the difference between a data member and a local variable inside a member function?	Data members can be accessed from any member functions inside the class defintion. Local variables can only be accessed inside the member function that defines them.
+10	What is the difference between a constructor and a function?	A constructor is called whenever an object is created, whereas a function needs to be called explicitely. Constructors do not have return type, but functions have to indicate a return type.
+11	When does C++ create a default constructor?	If no constructor is provided, the compiler provides one by default. If a constructor is defined for a class, the compiler does not create a default constructor.
+12	How many constructors can be created for a class?	Unlimited number.
+13	What is the difference between a function prototype and a function definition?	A function prototype includes the function signature, i.e., the name of the function, the return type, and the parameters' type. The function definition includes the actual body of the function. 
+14	What is the role of a header-file?	To store a class interface, including data members and member function prototypes.
+15	What does a function signature include?	The name of the function and the types of the parameters.
+16	What is the scope of global variables?	File scope.
+17	How does the compiler handle inline functions?	It makes a copy of the function code in every place where a function call is made.
+18	What is the main advantage associated with function arguments that are passed by reference?	It avoids making copies of large data structures when calling functions.
+19	How are overloaded functions differentiated by the compiler?	 Based on the function signature. When an overloaded function is called, the compiler will find the function whose signature is closest to the given function call.
+20	When defining a recursive function, what are possible causes for infinite recursion?	If the recursion step is defined incorrectly, or if the base case is not included.
+21	What are the similarities between iteration and recursion?	They both involve repetition; they both have termination tests; they can both occur infinitely.

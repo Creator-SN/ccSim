@@ -1,0 +1,5 @@
+**/**/__pycache__
+data_record/
+model/
+save_model/
+*.pth
