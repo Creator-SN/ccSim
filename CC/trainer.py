@@ -38,11 +38,11 @@ class Trainer(ITrainer):
         self.train_loader, self.eval_loader = d(
             batch_size, batch_size_eval, eval_mode)
 
-    def __call__(self, resume_path=None, resume_step=None, num_epochs=30, lr=5e-5, gpu=[0, 1, 2, 3], eval_call_epoch=None):
+    def __call__(self, resume_path=None, resume_step=None, num_epochs=30, lr=5e-5, fct_loss='MSELoss', gpu=[0, 1, 2, 3], eval_call_epoch=None):
         return self.train(resume_path=resume_path, resume_step=resume_step,
-                   num_epochs=num_epochs, lr=lr, gpu=gpu, eval_call_epoch=eval_call_epoch)
+                   num_epochs=num_epochs, lr=lr, fct_loss=fct_loss, gpu=gpu, eval_call_epoch=eval_call_epoch)
 
-    def train(self, resume_path=None, resume_step=None, num_epochs=30, lr=5e-5, gpu=[0, 1, 2, 3], eval_call_epoch=None):
+    def train(self, resume_path=None, resume_step=None, num_epochs=30, lr=5e-5, fct_loss='MSELoss', gpu=[0, 1, 2, 3], eval_call_epoch=None):
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model.cuda()
         self.model = torch.nn.DataParallel(self.model, device_ids=gpu).cuda()
@@ -70,8 +70,11 @@ class Trainer(ITrainer):
             for it in train_iter:
                 for key in it.keys():
                     it[key] = self.cuda(it[key])
-
+                
                 it['padding_length'] = int(self.padding_length / 2)
+                it['fct_loss'] = fct_loss
+                if fct_loss in ['BCELoss', 'MSELoss']:
+                    it['labels'] = it['labels'].float()
 
                 loss, pred = self.model(**it)
                 loss = loss.mean()

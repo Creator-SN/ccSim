@@ -23,7 +23,6 @@ class SiaGRU(nn.Module):
         self.h0.to(device)
         self.pred_fc = nn.Linear(50, 2)
 
-        self.fct_loss = nn.MSELoss()
 
     def init_hidden(self, size):
         h0 = nn.Parameter(torch.randn(size))
@@ -38,6 +37,16 @@ class SiaGRU(nn.Module):
         return F.dropout(v, p=0.2, training=self.training)
 
     def forward(self, **args):
+        if 'fct_loss' in args:
+            if args['fct_loss'] == 'BCELoss':
+                fct_loss = nn.BCELoss()
+            elif args['fct_loss'] == 'CrossEntropyLoss':
+                fct_loss = nn.CrossEntropyLoss()
+            elif args['fct_loss'] == 'MSELoss':
+                fct_loss = nn.MSELoss()
+        else:
+            fct_loss = nn.MSELoss()
+        
         # embeds: batch_size * seq_len => batch_size * seq_len * dim
         sent1, sent2 = args['input_ids'][:, :args['padding_length']], args['input_ids'][:, :args['padding_length']]
 
@@ -52,7 +61,7 @@ class SiaGRU(nn.Module):
         x = self.pred_fc(sim.squeeze(dim=-1))
         probabilities = nn.functional.softmax(x, dim=-1)
 
-        loss = self.fct_loss(probabilities[:, 1], args['labels'].float())
+        loss = fct_loss(probabilities[:, 1], args['labels'].float())
 
         pred = probabilities[:,1]
         

@@ -9,7 +9,6 @@ class SBert(nn.Module):
         super().__init__()
         self.config = BertConfig.from_json_file(config_path)
         self.model = BertModel.from_pretrained(pre_trained_path, config=self.config)
-        self.fct_loss = nn.MSELoss()
         self.tokenizer = tokenizer
 
         self.hidden_size = self.config.hidden_size
@@ -43,6 +42,15 @@ class SBert(nn.Module):
         return output_vector
     
     def forward(self, **args):
+        if 'fct_loss' in args:
+            if args['fct_loss'] == 'BCELoss':
+                fct_loss = nn.BCELoss()
+            elif args['fct_loss'] == 'CrossEntropyLoss':
+                fct_loss = nn.CrossEntropyLoss()
+            elif args['fct_loss'] == 'MSELoss':
+                fct_loss = nn.MSELoss()
+        else:
+            fct_loss = nn.MSELoss()
         x1, mask1, tid1 = args['input_ids'][:, :args['padding_length']], args['attention_mask'][:, :args['padding_length']], args['token_type_ids'][:, :args['padding_length']]
         x2, mask2, tid2 = args['input_ids'][:, args['padding_length']:], args['attention_mask'][:, args['padding_length']:], args['token_type_ids'][:, args['padding_length']:]
         em1 = self.model(x1, attention_mask=mask1, token_type_ids=tid1)[0]
@@ -52,7 +60,7 @@ class SBert(nn.Module):
         v = self.pooling(em2, mask2)
         similarity = self.cosine_score_transformation(torch.cosine_similarity(u, v))
 
-        loss = self.fct_loss(similarity, args['labels'].float())
+        loss = fct_loss(similarity, args['labels'].float())
         
         # 记录准确率
         pred = similarity

@@ -35,7 +35,7 @@ class CNSTSDataset(Dataset):
                 'input_ids': input_ids,
                 'attention_mask': attn_mask,
                 'token_type_ids': token_type_ids,
-                'labels': torch.tensor(labels).float()
+                'labels': torch.tensor(labels)
             }
         elif self.model_type == 'siamese':
             left_length = int(self.padding_length / 2)
@@ -55,7 +55,7 @@ class CNSTSDataset(Dataset):
                 'input_ids': torch.cat([ss1, ss2]),
                 'attention_mask': torch.cat([mask1, mask2]),
                 'token_type_ids': torch.cat([tid1, tid2]),
-                'labels': torch.tensor(labels).float()
+                'labels': torch.tensor(labels)
             }
     
     def __len__(self):

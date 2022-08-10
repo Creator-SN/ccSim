@@ -57,7 +57,6 @@ class ESIM(nn.Module):
             nn.Softmax(dim=-1)
         )
 
-        self.fct_loss = nn.MSELoss()
     
     def soft_attention_align(self, x1, x2, mask1, mask2):
         '''
@@ -91,6 +90,16 @@ class ESIM(nn.Module):
         return torch.cat([p1, p2], 1)
 
     def forward(self, **args):
+        if 'fct_loss' in args:
+            if args['fct_loss'] == 'BCELoss':
+                fct_loss = nn.BCELoss()
+            elif args['fct_loss'] == 'CrossEntropyLoss':
+                fct_loss = nn.CrossEntropyLoss()
+            elif args['fct_loss'] == 'MSELoss':
+                fct_loss = nn.MSELoss()
+        else:
+            fct_loss = nn.MSELoss()
+        
         # batch_size * seq_len
         sent1, sent2 = args['input_ids'][:,:args['padding_length']], args['input_ids'][:,args['padding_length']:]
         mask1, mask2 = sent1.eq(0), sent2.eq(0)
@@ -131,7 +140,7 @@ class ESIM(nn.Module):
         similarity = self.fc(x)
 
         out = similarity
-        loss = self.fct_loss(out[:, 1], args['labels'].float())
+        loss = fct_loss(out[:, 1], args['labels'].float())
         
         # 记录准确率
         pred = out[:,1]

@@ -199,11 +199,19 @@ class XSSBert(nn.Module):
         self.sd = SequenceDiff(self.config, slider_size=8)
         self.cs = CosineSim(self.config)
         self.mode_update()
-        self.fct_loss = nn.MSELoss()
         self.tokenizer = tokenizer
 
     def forward(self, **args):
-
+        if 'fct_loss' in args:
+            if args['fct_loss'] == 'BCELoss':
+                fct_loss = nn.BCELoss()
+            elif args['fct_loss'] == 'CrossEntropyLoss':
+                fct_loss = nn.CrossEntropyLoss()
+            elif args['fct_loss'] == 'MSELoss':
+                fct_loss = nn.MSELoss()
+        else:
+            fct_loss = nn.MSELoss()
+        
         Cuda(self.cs)
         Cuda(self.sd)
         outputs = self.model(
@@ -236,7 +244,7 @@ class XSSBert(nn.Module):
             pred = predA + predB
 
         if not args['labels'] == None:
-            loss = self.fct_loss(pred, args['labels'].view(-1))
+            loss = fct_loss(pred, args['labels'].view(-1))
 
             if args['dev_mode']:
                 return loss, pred, at

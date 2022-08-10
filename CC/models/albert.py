@@ -12,7 +12,15 @@ class Albert(nn.Module):
         self.tokenizer = tokenizer
     
     def forward(self, **args):
-        fct_loss = nn.MSELoss()
+        if 'fct_loss' in args:
+            if args['fct_loss'] == 'BCELoss':
+                fct_loss = nn.BCELoss()
+            elif args['fct_loss'] == 'CrossEntropyLoss':
+                fct_loss = nn.CrossEntropyLoss()
+            elif args['fct_loss'] == 'MSELoss':
+                fct_loss = nn.MSELoss()
+        else:
+            fct_loss = nn.MSELoss()
         outputs = self.model(args['input_ids'], attention_mask=args['attention_mask'], token_type_ids=args['token_type_ids'])
 
         logits = outputs[0]
