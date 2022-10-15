@@ -1,166 +1,197 @@
 import os
+import uuid
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+from transformers import get_linear_schedule_with_warmup
 import numpy as np
 from CC.ICCStandard import ITrainer
 from CC.model import AutoModel
 from CC.loader import AutoDataloader
 from CC.analysis import Analysis
 from tqdm import tqdm
-from torch.autograd import Variable
+
 
 class Trainer(ITrainer):
 
-    def __init__(self, tokenizer, model_name, dataset_name, model_type="bert", padding_length=50, batch_size=16, batch_size_eval=64, fit_sample=False):
-        self.dataset_name = dataset_name
+    def __init__(self, tokenizer, loader_name, data_path, model_name="bert",  model_type="interactive", data_present_path="./dataset/present.json", padding_length=50, batch_size=16, batch_size_eval=64, eval_mode='dev', task_name='SAS'):
+        self.loader_name = loader_name
+        self.model_name = model_name
         self.model_type = model_type
+        self.data_path = data_path
+        self.task_name = task_name
         self.padding_length = padding_length
-        self.dataloader_init(tokenizer, dataset_name, model_type, padding_length, batch_size, batch_size_eval, fit_sample=fit_sample)
+        self.dataloader_init(tokenizer, loader_name, data_path, model_type,
+                             data_present_path, padding_length, batch_size, batch_size_eval, eval_mode)
         self.model_init(tokenizer, model_name)
-    
+        self.analysis = Analysis()
+
     def model_init(self, tokenizer, model_name):
         print('AutoModel Choose Model: {}\n'.format(model_name))
         a = AutoModel(tokenizer, model_name)
         self.model = a()
 
-    def dataloader_init(self, tokenizer, data_name, model_type="bert", padding_length=50, batch_size=16, batch_size_eval=64, fit_sample=False):
-        d = AutoDataloader(tokenizer, data_name, model_type, padding_length)
-        if "weakly" not in model_type:
-            self.train_loader, self.eval_loader = d(batch_size, batch_size_eval)
-        else:
-            self.train_loader, self.eval_loader, self.fit_loader = d(batch_size, batch_size_eval, fit_sample=fit_sample)
-    
-    def __call__(self, resume_path=False, num_epochs=30, lr=5e-5, gpu=[0, 1, 2, 3], score_fitting=False):
-        self.train(resume_path, num_epochs, lr, gpu, score_fitting)
+    def dataloader_init(self, tokenizer, loader_name, data_path, model_type, data_present_path, padding_length, batch_size, batch_size_eval, eval_mode):
+        d = AutoDataloader(tokenizer, loader_name, data_path,
+                           model_type, data_present_path, padding_length)
+        self.train_loader, self.eval_loader = d(
+            batch_size, batch_size_eval, eval_mode)
 
-    def train(self, resume_path=False, num_epochs=30, lr=5e-5, gpu=[0, 1, 2, 3], score_fitting=False):
+    def __call__(self, resume_path=None, resume_step=None, num_epochs=30, lr=5e-5, fct_loss='MSELoss', gpu=[0, 1, 2, 3], eval_call_epoch=None):
+        return self.train(resume_path=resume_path, resume_step=resume_step,
+                          num_epochs=num_epochs, lr=lr, fct_loss=fct_loss, gpu=gpu, eval_call_epoch=eval_call_epoch)
+
+    def train(self, resume_path=None, resume_step=None, num_epochs=30, lr=5e-5, fct_loss='MSELoss', gpu=[0, 1, 2, 3], eval_call_epoch=None):
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model.cuda()
         self.model = torch.nn.DataParallel(self.model, device_ids=gpu).cuda()
 
-        if not resume_path == False:
+        if resume_path is not None:
             print('Accessing Resume PATH: {} ...\n'.format(resume_path))
             model_dict = torch.load(resume_path).module.state_dict()
             self.model.module.load_state_dict(model_dict)
         self.model.to(device)
-        
-        optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=0.)
-        
-        Epoch_loss = []
-        Epoch_error = []
-        Epoch_R = []
-        Epoch_RMSE = []
 
-        Epoch_loss_eval = []
-        Epoch_error_eval = []
-        Epoch_R_eval = []
-        Epoch_RMSE_eval = []
+        optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=0.)
+        scheduler = get_linear_schedule_with_warmup(optimizer, 190, 80000)
+
+        current_uid = str(uuid.uuid1()).split('-')[0]
+
+        train_step = resume_step if resume_step is not None else 0
         for epoch in range(num_epochs):
             train_count = 0
-            train_loss = []
+            train_loss = 0
+            train_R = []
+            train_RMSE = []
+            train_error = []
+            train_pearson = []
+            train_spearman = []
             X = []
             Y = []
-            Epoch_X_eval = []
-            Epoch_Y_eval = []
-            train_error = []
-            if not score_fitting:
-                train_iter = tqdm(self.train_loader)
-            else:
-                train_iter = tqdm(self.fit_loader)
+
+            train_iter = tqdm(self.train_loader)
             self.model.train()
-            for sentences, mask, token_type_ids, labels in train_iter:
-                sentences = self.cuda(sentences)
-                mask = self.cuda(mask)
-                token_type_ids = self.cuda(token_type_ids)
-                labels = self.cuda(labels)
-                self.model.zero_grad()
-                
-                loss, pred = self.model(sentences=sentences, attention_mask=mask, token_type_ids=token_type_ids, labels=labels, padding_length=self.padding_length)
+
+            for it in train_iter:
+                for key in it.keys():
+                    it[key] = self.cuda(it[key])
+
+                it['padding_length'] = int(self.padding_length / 2)
+                it['fct_loss'] = fct_loss
+                if fct_loss in ['BCELoss', 'MSELoss']:
+                    it['labels'] = it['labels'].float()
+
+                loss, pred = self.model(**it)
                 loss = loss.mean()
 
-                optimizer.zero_grad()
                 loss.backward()
+                scheduler.step()
                 optimizer.step()
+                self.model.zero_grad()
 
-                train_loss.append(loss.data.item())
-
-                X += labels.tolist()
-                Y += pred.tolist()
-                r, r_mse, p_, s_ = Analysis.Evaluation(X, Y)
-                train_error.append((torch.abs(pred - labels)).mean().data.item())
+                train_loss += loss.data.item()
                 train_count += 1
 
-                train_iter.set_description('Train: {}/{}'.format(epoch + 1, num_epochs))
-                train_iter.set_postfix(train_loss=np.mean(train_loss), R=r, RMSE=r_mse, Pearson=p_, Spearman=s_, train_error=np.mean(train_error))
-            
-            Epoch_loss.append(np.mean(train_loss))
-            Epoch_error.append(np.mean(train_error))
-            Epoch_R.append(r)
-            Epoch_RMSE.append(r_mse)
-            
-            if score_fitting == False:
-                _dir = './log/{}/{}'.format(self.dataset_name, self.model_type)
-            else:
-                _dir = './log/{}/{}'.format(self.dataset_name, self.model_type + '_fit')
-            Analysis.save_same_row_list(_dir, 'train_log', loss=Epoch_loss, error=Epoch_error, R=Epoch_R, RMSE=Epoch_RMSE)
-            if resume_path == False:
-                self.save_model(epoch, 0, score_fitting)
-            else:
-                self.save_model(epoch, int(resume_path.split('/')[-1].split('_')[1].split('.')[0]), score_fitting)
-            
-            A, B, C, D, E, F = self.eval(epoch, num_epochs)
-            Epoch_X_eval += A
-            Epoch_Y_eval += B
-            Epoch_loss_eval.append(C)
-            Epoch_error_eval.append(D)
-            Epoch_R_eval.append(E)
-            Epoch_RMSE_eval.append(F)
-            Analysis.save_xy(Epoch_X_eval, Epoch_Y_eval, _dir)
-            Analysis.save_same_row_list(_dir, 'eval_log', loss=Epoch_loss_eval, error=Epoch_error_eval, R=Epoch_R_eval, RMSE=Epoch_RMSE_eval)
+                gold = it['labels']
+                X += pred.tolist()
+                Y += gold.tolist()
+                r, r_mse, pearsonr, spearmanr = self.analysis.evaluationSAS(
+                    X, Y)
+                train_error.append((torch.abs(pred - gold)).mean().data.item())
+                train_R.append(r)
+                train_RMSE.append(r_mse)
+                train_pearson.append(pearsonr)
+                train_spearman.append(spearmanr)
 
-    def save_model(self, epoch, save_offset=0, score_fitting=False):
-        if score_fitting == False:
-            _dir = './model/{}/{}'.format(self.dataset_name, self.model_type)
+                train_iter.set_description(
+                    'Train: {}/{}'.format(epoch + 1, num_epochs))
+                train_iter.set_postfix(
+                    train_loss=train_loss / train_count, R=r, RMSE=r_mse, Pearson=pearsonr, Spearman=spearmanr, train_error=np.mean(train_error))
+
+            self.analysis.append_train_record({
+                'epoch': epoch + 1,
+                'train_loss': train_loss / train_count,
+                'R': np.mean(train_R),
+                'RMSE': np.mean(train_RMSE),
+                'pearson': np.mean(train_pearson),
+                'spearman': np.mean(train_spearman),
+                'train_error': np.mean(train_error)
+            })
+
+            model_uid = self.save_model(train_step)
+            if eval_call_epoch is None or eval_call_epoch(epoch):
+                self.eval(epoch)
+
+            self.analysis.save_all_records(
+                uid=current_uid if self.task_name is None else self.task_name)
+            yield (epoch, self.analysis.train_record, self.analysis.eval_record, self.analysis.model_record, model_uid)
+
+    def save_model(self, current_step=0):
+        if self.task_name is None:
+            dir = 'undefined'
         else:
-            _dir = './model/{}/{}'.format(self.dataset_name, self.model_type + '_fit')
-        if not os.path.isdir(_dir):
-            os.makedirs(_dir)
-        torch.save(self.model, '{}/epoch_{}.pth'.format(_dir, epoch + 1 + save_offset))
+            dir = self.task_name
+        if not os.path.exists('./save_model/{}/{}'.format(dir, self.model_name)):
+            os.makedirs('./save_model/{}/{}'.format(dir, self.model_name))
+        torch.save(
+            self.model, './save_model/{}/{}/{}_{}.pth'.format(dir, self.model_name, self.model_name, current_step))
+        self.analysis.append_model_record(current_step)
+        return current_step
 
-    def eval(self, epoch, num_epochs):
+    def eval(self, epoch):
         with torch.no_grad():
-            eval_loss = []
+            eval_count = 0
+            eval_loss = 0
+            eval_R = []
+            eval_RMSE = []
+            eval_error = []
+            eval_pearson = []
+            eval_spearman = []
             X = []
             Y = []
-            eval_count = 0
-            eval_error = []
-            self.model.eval()
-            eval_iter = tqdm(self.eval_loader)
-            for sentences, mask, token_type_ids, labels in eval_iter:
-                self.model.eval()
-                sentences = self.cuda(sentences)
-                mask = self.cuda(mask)
-                token_type_ids = self.cuda(token_type_ids)
-                labels = self.cuda(labels)
 
-                loss, pred = self.model(sentences, attention_mask=mask, token_type_ids=token_type_ids, labels=labels, padding_length=self.padding_length)
+            eval_iter = tqdm(self.eval_loader)
+            self.model.eval()
+
+            for it in eval_iter:
+                for key in it.keys():
+                    it[key] = self.cuda(it[key])
+
+                it['padding_length'] = int(self.padding_length / 2)
+
+                loss, pred = self.model(**it)
                 loss = loss.mean()
 
-                eval_loss.append(loss.sum().data.item())
-
-                X += labels.tolist()
-                Y += pred.tolist()
-                r, r_mse, p_, s_ = Analysis.Evaluation(X, Y)
-                eval_error.append((torch.abs(pred - labels)).mean().data.item())
+                eval_loss += loss.data.item()
                 eval_count += 1
-                
-                eval_iter.set_description('Eval: {}/{}'.format(epoch + 1, num_epochs))
-                eval_iter.set_postfix(eval_loss=np.mean(eval_loss), R=r, RMSE=r_mse, Pearson=p_, Spearman=s_, eval_avg=np.mean(eval_error))
-            
-            return X, Y, np.mean(eval_loss), np.mean(eval_error), r, r_mse
-        
+
+                gold = it['labels']
+                X += pred.tolist()
+                Y += gold.tolist()
+                r, r_mse, pearsonr, spearmanr = self.analysis.evaluationSAS(
+                    X, Y)
+                eval_error.append((torch.abs(pred - gold)).mean().data.item())
+                eval_R.append(r)
+                eval_RMSE.append(r_mse)
+                eval_pearson.append(pearsonr)
+                eval_spearman.append(spearmanr)
+
+                eval_iter.set_description(
+                    f'Eval: {epoch + 1}')
+                eval_iter.set_postfix(
+                    eval_loss=eval_loss / eval_count, R=r, RMSE=r_mse, Pearson=pearsonr, Spearman=spearmanr, eval_error=np.mean(eval_error))
+
+            self.analysis.append_eval_record({
+                'epoch': epoch + 1,
+                'eval_loss': eval_loss / eval_count,
+                'R': np.mean(eval_R),
+                'RMSE': np.mean(eval_RMSE),
+                'pearson': np.mean(eval_pearson),
+                'spearman': np.mean(eval_spearman),
+                'eval_error': np.mean(eval_error)
+            })
+
     def cuda(self, inputX):
         if type(inputX) == tuple:
             if torch.cuda.is_available():

@@ -89,7 +89,7 @@ class SequenceDiff(nn.Module):
             nn.Softmax(dim=-1)
         )
 
-    def forward(self, sentences, attentions, logits, mask, dev_mode=False):
+    def forward(self, sentences, attentions, logits, mask):
         # sentences: batch_size, seq_len
         # logits: batch_size, seq_len, hidden_size
         # attentions: batch_size, num_heads, sequence_length, sequence_length
@@ -159,10 +159,7 @@ class SequenceDiff(nn.Module):
 
         similarity = self.fc(x)
 
-        if dev_mode:
-            return similarity, [A.tolist(), B.tolist()]
-        else:
-            return similarity
+        return similarity
 
     def pooling(self, x):
         # transpose(1,2): take average of per index of hidden states in different words
@@ -223,11 +220,7 @@ class XSSBert(nn.Module):
         attention_list = outputs[2]
 
         # keywords-level
-        if args['dev_mode']:
-            sim, at = self.sd(args['input_ids'], attention_list[3], logits=logits,
-                              mask=args['attention_mask'].long(), dev_mode=True)
-        else:
-            sim = self.sd(args['input_ids'], attention_list[-1],
+        sim = self.sd(args['input_ids'], attention_list[-1],
                           logits=logits, mask=args['attention_mask'].long())
         out = sim
         predA = out[:, 1]
@@ -246,12 +239,8 @@ class XSSBert(nn.Module):
         if not args['labels'] == None:
             loss = fct_loss(pred, args['labels'].view(-1))
 
-            if args['dev_mode']:
-                return loss, pred, at
             return loss, pred
 
-        if args['dev_mode']:
-            return pred, at
         return pred
 
     def get_model(self):
