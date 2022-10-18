@@ -38,7 +38,7 @@ class CNSTSDataset(Dataset):
                 'labels': torch.tensor(labels)
             }
         elif self.model_type == 'siamese':
-            left_length = int(self.padding_length / 2)
+            left_length = self.padding_length // 2
             if left_length < self.padding_length / 2:
                 left_length += 1
             right_length = self.padding_length - left_length
@@ -47,7 +47,6 @@ class CNSTSDataset(Dataset):
             ss1 = torch.tensor(T1['input_ids'])
             mask1 = torch.tensor(T1['attention_mask'])
             tid1 = torch.tensor(T1['token_type_ids'])
-            T2 = self.tokenizer(s2, add_special_tokens=True, max_length=self.padding_length, padding='max_length', truncation=True)
             ss2 = torch.tensor(T2['input_ids'])
             mask2 = torch.tensor(T2['attention_mask'])
             tid2 = torch.ones(ss2.shape).long()

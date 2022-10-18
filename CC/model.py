@@ -10,6 +10,7 @@ from CC.models.sbert import SBert
 from CC.models.abcnn import ABCNN
 from CC.models.siagru import SiaGRU
 from CC.models.x import XSSBert
+from CC.models.msim import MSIM
 
 class AutoModel(IModel):
 
@@ -53,6 +54,8 @@ class AutoModel(IModel):
             self.model = XSSBert(tokenizer=self.tokenizer, config_path=bert_config_path, pre_trained_path=bert_pre_trained_path, mode='keywords_only')
         elif model_name == 'x_s':
             self.model = XSSBert(tokenizer=self.tokenizer, config_path=bert_config_path, pre_trained_path=bert_pre_trained_path, mode='seq_only')
+        elif model_name == 'msim':
+            self.model = MSIM(tokenizer=self.tokenizer, config_path=bert_config_path, pre_trained_path=bert_pre_trained_path)
     
     def get_model(self):
         return self.model

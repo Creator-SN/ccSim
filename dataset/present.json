@@ -2,5 +2,10 @@
     "CNSTS": {
         "train": "./dataset/CHIP-STS/CHIP-STS_train.json",
         "dev": "./dataset/CHIP-STS/CHIP-STS_dev.json"
+    },
+    "CNSTSX": {
+        "train": "./dataset/CHIP-STS/CHIP-STS_train.json",
+        "dev": "./dataset/CHIP-STS/CHIP-STS_dev.json",
+        "vocab_file": "./dataset/CHIP-STS/entities.txt"
     }
 }
