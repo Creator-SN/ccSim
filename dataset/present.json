@@ -7,5 +7,15 @@
         "train": "./dataset/CHIP-STS/CHIP-STS_train.json",
         "dev": "./dataset/CHIP-STS/CHIP-STS_dev.json",
         "vocab_file": "./dataset/CHIP-STS/entities.txt"
+    },
+    "SAS": {
+        "train": "./dataset/SAS/s_train_zh.json",
+        "dev": "./dataset/SAS/s_eval_zh.json",
+        "vocab_file": "./dataset/SAS/entities.csv"
+    },
+    "SFR": {
+        "train": "./dataset/SFR/s_train_zh.json",
+        "dev": "./dataset/SFR/s_eval_zh.json",
+        "vocab_file": "./dataset/SFR/entities.txt"
     }
 }

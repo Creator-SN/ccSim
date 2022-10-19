@@ -83,7 +83,7 @@ class CNSTSXDataset(Dataset):
         words_attention_mask_1 = words_input_ids_1.gt(0)
         words_input_ids_2 = torch.tensor(s2_words)
         words_attention_mask_2 = words_input_ids_2.gt(0)
-        labels = int(item['label'])
+        labels = float(item['label'])
         if self.model_type == 'interactive':
             T = self.tokenizer(s1, s2, add_special_tokens=True,
                                max_length=self.padding_length, padding='max_length', truncation=True)
