@@ -82,7 +82,7 @@ class Trainer(ITrainer):
                 if fct_loss in ['BCELoss', 'MSELoss']:
                     it['labels'] = it['labels'].float()
 
-                loss, pred = self.model(**it)
+                loss, pred, scores = self.model(**it)
                 loss = loss.mean()
 
                 loss.backward()
@@ -107,7 +107,7 @@ class Trainer(ITrainer):
                 train_iter.set_description(
                     'Train: {}/{}'.format(epoch + 1, num_epochs))
                 train_iter.set_postfix(
-                    train_loss=train_loss / train_count, R=r, RMSE=r_mse, Pearson=pearsonr, Spearman=spearmanr, train_error=np.mean(train_error))
+                    train_loss=train_loss / train_count, R=r, RMSE=r_mse, Pearson=pearsonr, Spearman=spearmanr, train_error=np.mean(train_error), scoresA=np.mean(scores[0].tolist()), scoresB=np.mean(scores[1].tolist()), scoresC=np.mean(scores[2].tolist()), scoresD=np.mean(scores[3].tolist()))
 
             self.analysis.append_train_record({
                 'epoch': epoch + 1,
@@ -160,7 +160,7 @@ class Trainer(ITrainer):
 
                 it['padding_length'] = int(self.padding_length / 2)
 
-                loss, pred = self.model(**it)
+                loss, pred, scores = self.model(**it)
                 loss = loss.mean()
 
                 eval_loss += loss.data.item()
@@ -180,7 +180,7 @@ class Trainer(ITrainer):
                 eval_iter.set_description(
                     f'Eval: {epoch + 1}')
                 eval_iter.set_postfix(
-                    eval_loss=eval_loss / eval_count, R=r, RMSE=r_mse, Pearson=pearsonr, Spearman=spearmanr, eval_error=np.mean(eval_error))
+                    eval_loss=eval_loss / eval_count, R=r, RMSE=r_mse, Pearson=pearsonr, Spearman=spearmanr, eval_error=np.mean(eval_error), scoresA=np.mean(scores[0].tolist()), scoresB=np.mean(scores[1].tolist()), scoresC=np.mean(scores[2].tolist()), scoresD=np.mean(scores[3].tolist()))
 
             self.analysis.append_eval_record({
                 'epoch': epoch + 1,
