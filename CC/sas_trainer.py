@@ -116,7 +116,11 @@ class Trainer(ITrainer):
                 'RMSE': np.mean(train_RMSE),
                 'pearson': np.mean(train_pearson),
                 'spearman': np.mean(train_spearman),
-                'train_error': np.mean(train_error)
+                'train_error': np.mean(train_error),
+                'scoresA': np.mean(scores[0].tolist()),
+                'scoresB': np.mean(scores[1].tolist()),
+                'scoresC': np.mean(scores[2].tolist()),
+                'scoresD': np.mean(scores[3].tolist())
             })
 
             model_uid = self.save_model(train_step)
@@ -189,7 +193,11 @@ class Trainer(ITrainer):
                 'RMSE': np.mean(eval_RMSE),
                 'pearson': np.mean(eval_pearson),
                 'spearman': np.mean(eval_spearman),
-                'eval_error': np.mean(eval_error)
+                'eval_error': np.mean(eval_error),
+                'scoresA': np.mean(scores[0].tolist()),
+                'scoresB': np.mean(scores[1].tolist()),
+                'scoresC': np.mean(scores[2].tolist()),
+                'scoresD': np.mean(scores[3].tolist())
             })
 
     def cuda(self, inputX):

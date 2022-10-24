@@ -313,7 +313,7 @@ class MSIM(nn.Module):
         #     [word_feature_1_out, word_feature_2_out, cs_feature], dim=1)
         
         # out = self.fc(mix_output)
-        pred = predA + 0.5 * predB + 0.2 * (word_feature_1_out + word_feature_2_out)
+        pred = 0.1 * predA + predB + 0.2 * (word_feature_1_out + word_feature_2_out)
 
         if not args['labels'] is None:
             loss = fct_loss(pred, args['labels'].view(-1))
