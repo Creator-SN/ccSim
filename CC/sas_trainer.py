@@ -106,10 +106,16 @@ class Trainer(ITrainer):
 
                 train_iter.set_description(
                     'Train: {}/{}'.format(epoch + 1, num_epochs))
-                train_iter.set_postfix(
-                    train_loss=train_loss / train_count, R=r, RMSE=r_mse, Pearson=pearsonr, Spearman=spearmanr, train_error=np.mean(train_error), scoresA=np.mean(scores[0].tolist()), scoresB=np.mean(scores[1].tolist()), scoresC=np.mean(scores[2].tolist()), scoresD=np.mean(scores[3].tolist()))
+                if scores is None:
+                    train_iter.set_postfix(
+                        train_loss=train_loss / train_count, R=r, RMSE=r_mse, Pearson=pearsonr, Spearman=spearmanr, train_error=np.mean(train_error))
+                else:
+                    train_iter.set_postfix(
+                        train_loss=train_loss / train_count, R=r, RMSE=r_mse, Pearson=pearsonr, Spearman=spearmanr, train_error=np.mean(train_error), scoresA=np.mean(scores[0].tolist()), scoresB=np.mean(scores[1].tolist()), scoresC=np.mean(scores[2].tolist()), scoresD=np.mean(scores[3].tolist()))
+                    
 
-            self.analysis.append_train_record({
+            if scores is None:
+                 self.analysis.append_train_record({
                 'epoch': epoch + 1,
                 'train_loss': train_loss / train_count,
                 'R': np.mean(train_R),
@@ -117,11 +123,21 @@ class Trainer(ITrainer):
                 'pearson': np.mean(train_pearson),
                 'spearman': np.mean(train_spearman),
                 'train_error': np.mean(train_error),
-                'scoresA': np.mean(scores[0].tolist()),
-                'scoresB': np.mean(scores[1].tolist()),
-                'scoresC': np.mean(scores[2].tolist()),
-                'scoresD': np.mean(scores[3].tolist())
-            })
+                })
+            else:
+                self.analysis.append_train_record({
+                    'epoch': epoch + 1,
+                    'train_loss': train_loss / train_count,
+                    'R': np.mean(train_R),
+                    'RMSE': np.mean(train_RMSE),
+                    'pearson': np.mean(train_pearson),
+                    'spearman': np.mean(train_spearman),
+                    'train_error': np.mean(train_error),
+                    'scoresA': np.mean(scores[0].tolist()),
+                    'scoresB': np.mean(scores[1].tolist()),
+                    'scoresC': np.mean(scores[2].tolist()),
+                    'scoresD': np.mean(scores[3].tolist())
+                })
 
             model_uid = self.save_model(train_step)
             if eval_call_epoch is None or eval_call_epoch(epoch):
@@ -183,22 +199,38 @@ class Trainer(ITrainer):
 
                 eval_iter.set_description(
                     f'Eval: {epoch + 1}')
-                eval_iter.set_postfix(
-                    eval_loss=eval_loss / eval_count, R=r, RMSE=r_mse, Pearson=pearsonr, Spearman=spearmanr, eval_error=np.mean(eval_error), scoresA=np.mean(scores[0].tolist()), scoresB=np.mean(scores[1].tolist()), scoresC=np.mean(scores[2].tolist()), scoresD=np.mean(scores[3].tolist()))
+                if scores is None:
+                    eval_iter.set_postfix(
+                        eval_loss=eval_loss / eval_count, R=r, RMSE=r_mse, Pearson=pearsonr, Spearman=spearmanr, eval_error=np.mean(eval_error))
+                else:
+                    eval_iter.set_postfix(
+                        eval_loss=eval_loss / eval_count, R=r, RMSE=r_mse, Pearson=pearsonr, Spearman=spearmanr, eval_error=np.mean(eval_error), scoresA=np.mean(scores[0].tolist()), scoresB=np.mean(scores[1].tolist()), scoresC=np.mean(scores[2].tolist()), scoresD=np.mean(scores[3].tolist()))
+                    
 
-            self.analysis.append_eval_record({
-                'epoch': epoch + 1,
-                'eval_loss': eval_loss / eval_count,
-                'R': np.mean(eval_R),
-                'RMSE': np.mean(eval_RMSE),
-                'pearson': np.mean(eval_pearson),
-                'spearman': np.mean(eval_spearman),
-                'eval_error': np.mean(eval_error),
-                'scoresA': np.mean(scores[0].tolist()),
-                'scoresB': np.mean(scores[1].tolist()),
-                'scoresC': np.mean(scores[2].tolist()),
-                'scoresD': np.mean(scores[3].tolist())
-            })
+            if scores is None:
+                self.analysis.append_eval_record({
+                    'epoch': epoch + 1,
+                    'eval_loss': eval_loss / eval_count,
+                    'R': np.mean(eval_R),
+                    'RMSE': np.mean(eval_RMSE),
+                    'pearson': np.mean(eval_pearson),
+                    'spearman': np.mean(eval_spearman),
+                    'eval_error': np.mean(eval_error),
+                })
+            else:
+                self.analysis.append_eval_record({
+                    'epoch': epoch + 1,
+                    'eval_loss': eval_loss / eval_count,
+                    'R': np.mean(eval_R),
+                    'RMSE': np.mean(eval_RMSE),
+                    'pearson': np.mean(eval_pearson),
+                    'spearman': np.mean(eval_spearman),
+                    'eval_error': np.mean(eval_error),
+                    'scoresA': np.mean(scores[0].tolist()),
+                    'scoresB': np.mean(scores[1].tolist()),
+                    'scoresC': np.mean(scores[2].tolist()),
+                    'scoresD': np.mean(scores[3].tolist())
+                })
 
     def cuda(self, inputX):
         if type(inputX) == tuple:
