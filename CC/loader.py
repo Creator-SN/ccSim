@@ -38,6 +38,17 @@ class AutoDataloader(IDataLoader):
             if 'test' in self.data_path:
                 self.test_set = CNSTSXDataset(
                     tokenizer, self.data_path['test'], self.data_path['vocab_file'], padding_length=self.padding_length, model_type=self.model_type, shuffle=False)
+        elif loader_name == "SIMCSE_STS":
+            # just copy first sentence twice.
+            self.train_set = CNSTSDataset(
+                tokenizer, self.data_path["train"], padding_length=self.padding_length, shuffle=True, model_type="copy"
+            )
+            self.eval_set = CNSTSDataset(
+                tokenizer, self.data_path["train"], padding_length=self.padding_length, shuffle=True, model_type=self.model_type
+            )
+            if 'test' in self.data_path:
+                self.test_set = CNSTSDataset(
+                    tokenizer, self.data_path['test'], self.data_path['vocab_file'], padding_length=self.padding_length, model_type=self.model_type, shuffle=False)
 
     def get_data_present(self, present_path):
         if not os.path.exists(present_path):
