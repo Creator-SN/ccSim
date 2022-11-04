@@ -16,20 +16,21 @@ from CC.models.simcse import SIMCSE
 
 class AutoModel(IModel):
 
-    def __init__(self, tokenizer, model_name):
+    def __init__(self, tokenizer, model_name, from_pretrained=None):
         self.tokenizer = tokenizer
         self.model_name = model_name
+        self.from_pretrained = from_pretrained
         self.load_model(model_name)
 
     def load_model(self, model_name):
         bert_config_path = './model/chinese_wwm_ext/bert_config.json'
-        bert_pre_trained_path = './model/chinese_wwm_ext/pytorch_model.bin'
+        bert_pre_trained_path = self.from_pretrained if self.from_pretrained is not None else './model/chinese_wwm_ext/pytorch_model.bin'
         albert_config_path = './model/albert_chinese_base/config.json'
-        albert_pre_trained_path = './model/albert_chinese_base/pytorch_model.bin'
+        albert_pre_trained_path = self.from_pretrained if self.from_pretrained is not None else './model/albert_chinese_base/pytorch_model.bin'
         roberta_config_path = './model/roberta_chinese_base/config.json'
-        roberta_pre_trained_path = './model/roberta_chinese_base/pytorch_model.bin'
+        roberta_pre_trained_path = self.from_pretrained if self.from_pretrained is not None else './model/roberta_chinese_base/pytorch_model.bin'
         xlnet_config_path = './model/chinese-xlnet-base/config.json'
-        xlnet_pre_trained_path = './model/chinese-xlnet-base/pytorch_model.bin'
+        xlnet_pre_trained_path = self.from_pretrained if self.from_pretrained is not None else './model/chinese-xlnet-base/pytorch_model.bin'
         if model_name == 'bert':
             self.model = Bert(tokenizer=self.tokenizer, config_path=bert_config_path,
                               pre_trained_path=bert_pre_trained_path)

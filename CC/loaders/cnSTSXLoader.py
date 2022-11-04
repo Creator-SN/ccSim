@@ -125,6 +125,29 @@ class CNSTSXDataset(Dataset):
                 'words_attention_mask_2': words_attention_mask_2,
                 'labels': torch.tensor(labels)
             }
+        elif self.model_type == 'copy':
+            left_length = self.padding_length // 2
+            if left_length < self.padding_length / 2:
+                left_length += 1
+            right_length = self.padding_length - left_length
+            T1 = self.tokenizer(s1, add_special_tokens=True, max_length=left_length, padding='max_length', truncation=True)
+            T2 = self.tokenizer(s1, add_special_tokens=True, max_length=right_length, padding='max_length', truncation=True)
+            ss1 = torch.tensor(T1['input_ids'])
+            mask1 = torch.tensor(T1['attention_mask'])
+            tid1 = torch.tensor(T1['token_type_ids'])
+            ss2 = torch.tensor(T2['input_ids'])
+            mask2 = torch.tensor(T2['attention_mask'])
+            tid2 = torch.ones(ss2.shape).long()
+            return {
+                'input_ids': torch.cat([ss1, ss2]),
+                'attention_mask': torch.cat([mask1, mask2]),
+                'token_type_ids': torch.cat([tid1, tid2]),
+                'words_input_ids_1': words_input_ids_1,
+                'words_attention_mask_1': words_attention_mask_1,
+                'words_input_ids_2': words_input_ids_1,
+                'words_attention_mask_2': words_attention_mask_1,
+                'labels': torch.tensor(1)
+            }
 
     def __len__(self):
         return len(self.ori_json)

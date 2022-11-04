@@ -15,10 +15,11 @@ from tqdm import tqdm
 
 class Trainer(ITrainer):
 
-    def __init__(self, tokenizer, loader_name, data_path, model_name="bert",  model_type="interactive", data_present_path="./dataset/present.json", padding_length=50, batch_size=16, batch_size_eval=64, eval_mode='dev', task_name='Sim'):
+    def __init__(self, tokenizer, loader_name, data_path, model_name="bert",  model_type="interactive", from_pretrained=None, data_present_path="./dataset/present.json", padding_length=50, batch_size=16, batch_size_eval=64, eval_mode='dev', task_name='Sim'):
         self.loader_name = loader_name
         self.model_name = model_name
         self.model_type = model_type
+        self.from_pretrained = from_pretrained
         self.data_path = data_path
         self.task_name = task_name
         self.padding_length = padding_length
@@ -29,7 +30,7 @@ class Trainer(ITrainer):
 
     def model_init(self, tokenizer, model_name):
         print('AutoModel Choose Model: {}\n'.format(model_name))
-        a = AutoModel(tokenizer, model_name)
+        a = AutoModel(tokenizer, model_name, self.from_pretrained)
         self.model = a()
 
     def dataloader_init(self, tokenizer, loader_name, data_path, model_type, data_present_path, padding_length, batch_size, batch_size_eval, eval_mode):
@@ -86,6 +87,7 @@ class Trainer(ITrainer):
 
                 train_loss += loss.data.item()
                 train_count += 1
+                train_step += 1
 
                 gold = it['labels']
                 p = (pred > 0.5).float()

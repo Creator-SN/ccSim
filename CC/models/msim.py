@@ -99,6 +99,7 @@ class WordAttentionFeature(nn.Module):
 
     def forward(self, sentence, words, words_attention_mask):
         # words: batch_size * vocab_size * hidden_size
+        self.lstm.flatten_parameters()
         words_feautre, _ = self.lstm(words)
         word_outputs = self.word_transform(
             words_feautre)  # [N, W, D]
@@ -272,8 +273,6 @@ class MSIM(nn.Module):
         else:
             fct_loss = nn.MSELoss()
 
-        Cuda(self.cs)
-        Cuda(self.wa)
         outputs = self.model(
             args['input_ids'], attention_mask=args['attention_mask'], token_type_ids=args['token_type_ids'])
 
@@ -313,7 +312,7 @@ class MSIM(nn.Module):
         #     [word_feature_1_out, word_feature_2_out, cs_feature], dim=1)
         
         # out = self.fc(mix_output)
-        pred = 0.1 * predA + 1 * predB + 0.2 * (word_feature_1_out + word_feature_2_out)
+        pred = 1 * predA + 0.5 * predB + 0.2 * (word_feature_1_out + word_feature_2_out)
 
         if not args['labels'] is None:
             loss = fct_loss(pred, args['labels'].view(-1))
