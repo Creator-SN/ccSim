@@ -145,4 +145,7 @@ class ESIM(nn.Module):
         # 记录准确率
         pred = out[:,1]
         
-        return loss, pred
+        return {
+            'loss': loss,
+            'pred': pred,
+        }

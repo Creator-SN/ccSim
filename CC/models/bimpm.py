@@ -188,7 +188,10 @@ class BIMPM(nn.Module):
 
         pred = probabilities[:,1]
         
-        return loss, pred
+        return {
+            'loss': loss,
+            'pred': pred,
+        }
 
 # ----- Matching Layer -----
 def mp_matching_func(v1, v2, w, l=20):

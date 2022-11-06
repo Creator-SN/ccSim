@@ -17,5 +17,10 @@
         "train": "./dataset/SFR/s_train_zh.json",
         "dev": "./dataset/SFR/s_eval_zh.json",
         "vocab_file": "./dataset/SFR/entities.txt"
+    },
+    "ASAG": {
+        "train": "./dataset/shortanswergrading/s_train_zh.json",
+        "dev": "./dataset/shortanswergrading/s_eval_zh.json",
+        "vocab_file": "./dataset/shortanswergrading/entities.txt"
     }
 }

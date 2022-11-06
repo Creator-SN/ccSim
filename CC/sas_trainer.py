@@ -84,10 +84,10 @@ class Trainer(ITrainer):
                     it['labels'] = it['labels'].float()
 
                 model_output = self.model(**it)
-                if len(model_output) > 2:
-                    loss, pred, scores = model_output
+                loss, pred = model_output['loss'], model_output['pred']
+                if 'scores' in model_output.keys():
+                    scores = model_output['scores']
                 else:
-                    loss, pred = model_output
                     scores = None
                 loss = loss.mean()
 
@@ -187,10 +187,10 @@ class Trainer(ITrainer):
                 it['padding_length'] = int(self.padding_length / 2)
 
                 model_output = self.model(**it)
-                if len(model_output) > 2:
-                    loss, pred, scores = model_output
+                loss, pred = model_output['loss'], model_output['pred']
+                if 'scores' in model_output.keys():
+                    scores = model_output['scores']
                 else:
-                    loss, pred = model_output
                     scores = None
                 loss = loss.mean()
 

@@ -82,7 +82,8 @@ class WordAttentionFeature(nn.Module):
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.act = nn.Tanh()
 
-        self.lstm = nn.LSTM(config.hidden_size, config.hidden_size // 2, bidirectional=True, batch_first=True)
+        self.lstm = nn.LSTM(config.hidden_size, config.hidden_size //
+                            2, bidirectional=True, batch_first=True)
         self.word_transform = nn.Linear(
             config.hidden_size, config.hidden_size)
         self.word_word_weight = nn.Linear(
@@ -126,6 +127,7 @@ class WordAttentionFeature(nn.Module):
         sim = self.fc(torch.cat([word_attn_feature, sentence], dim=-1))
 
         return sim[:, 1]
+
 
 class SequenceDiff(nn.Module):
 
@@ -239,7 +241,6 @@ class SequenceDiff(nn.Module):
         return pos, l, r
 
 
-
 class MSIM(nn.Module):
 
     def __init__(self, tokenizer, config_path, pre_trained_path, mode='default'):
@@ -289,7 +290,7 @@ class MSIM(nn.Module):
 
         # keywords-level
         sim = self.sd(args['input_ids'], attention_list[-1],
-                          logits=logits, mask=args['attention_mask'].long())
+                      logits=logits, mask=args['attention_mask'].long())
         predA = sim[:, 1]
 
         hs_1 = hidden_states[0][:, :args['padding_length'], :]
@@ -310,13 +311,18 @@ class MSIM(nn.Module):
 
         # mix_output = torch.cat(
         #     [word_feature_1_out, word_feature_2_out, cs_feature], dim=1)
-        
+
         # out = self.fc(mix_output)
-        pred = 1 * predA + 0.5 * predB + 0.2 * (word_feature_1_out + word_feature_2_out)
+        pred = 1 * predA + 0.5 * predB + 0.2 * \
+            (word_feature_1_out + word_feature_2_out)
 
         if not args['labels'] is None:
             loss = fct_loss(pred, args['labels'].view(-1))
-            return loss, pred, (predA, predB, word_feature_1_out, word_feature_2_out)
+            return {
+                'loss': loss,
+                'pred': pred,
+                'scores': (predA, predB, word_feature_1_out, word_feature_2_out)
+            }
 
         return pred
 

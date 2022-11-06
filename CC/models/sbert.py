@@ -65,7 +65,10 @@ class SBert(nn.Module):
         # 记录准确率
         pred = similarity
 
-        return loss, pred
+        return {
+            'loss': loss,
+            'pred': pred,
+        }
     
     def get_model(self):
         return self.model

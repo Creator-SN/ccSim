@@ -94,7 +94,10 @@ class WSSBert(nn.Module):
         pred, loss = self.fct_loss(outputs[:, :args['padding_length'], :], args['attention_mask'][:, :args['padding_length']],
                                    outputs[:, args['padding_length']:, :], args['attention_mask'][:, args['padding_length']:], args['labels'].view(-1))
 
-        return loss, pred
+        return {
+            'loss': loss,
+            'pred': pred,
+        }
 
     def get_model(self):
         return self.model

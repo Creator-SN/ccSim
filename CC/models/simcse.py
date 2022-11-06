@@ -44,4 +44,7 @@ class SIMCSE(nn.Module):
         pred = self.sim(z1_cls, z2_cls)
 
 
-        return loss, pred, None
+        return {
+            'loss': loss,
+            'pred': pred
+        }

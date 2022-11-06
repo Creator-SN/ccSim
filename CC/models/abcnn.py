@@ -65,7 +65,10 @@ class ABCNN(nn.Module):
 
         pred = probabilities[:,1]
         
-        return loss, pred
+        return {
+            'loss': loss,
+            'pred': pred,
+        }
 
 
 class Wide_Conv(nn.Module):

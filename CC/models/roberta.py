@@ -29,4 +29,7 @@ class Roberta(nn.Module):
 
         loss = fct_loss(p[:, 1], args['labels'].view(-1))
 
-        return loss, pred
+        return {
+            'loss': loss,
+            'pred': pred,
+        }

@@ -65,4 +65,7 @@ class SiaGRU(nn.Module):
 
         pred = probabilities[:,1]
         
-        return loss, pred
+        return {
+            'loss': loss,
+            'pred': pred,
+        }

@@ -208,7 +208,7 @@ class XSSBert(nn.Module):
                 fct_loss = nn.MSELoss()
         else:
             fct_loss = nn.MSELoss()
-        
+
         Cuda(self.cs)
         Cuda(self.sd)
         outputs = self.model(
@@ -221,7 +221,7 @@ class XSSBert(nn.Module):
 
         # keywords-level
         sim = self.sd(args['input_ids'], attention_list[-1],
-                          logits=logits, mask=args['attention_mask'].long())
+                      logits=logits, mask=args['attention_mask'].long())
         out = sim
         predA = out[:, 1]
 
@@ -239,7 +239,10 @@ class XSSBert(nn.Module):
         if not args['labels'] == None:
             loss = fct_loss(pred, args['labels'].view(-1))
 
-            return loss, pred
+            return {
+                'loss': loss,
+                'pred': pred,
+            }
 
         return pred
 

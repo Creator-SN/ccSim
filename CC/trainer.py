@@ -77,7 +77,8 @@ class Trainer(ITrainer):
                 if fct_loss in ['BCELoss', 'MSELoss']:
                     it['labels'] = it['labels'].float()
 
-                loss, pred = self.model(**it)
+                output = self.model(**it)
+                loss, pred = output['loss'], output['pred']
                 loss = loss.mean()
 
                 loss.backward()
@@ -139,7 +140,8 @@ class Trainer(ITrainer):
 
                 it['padding_length'] = int(self.padding_length / 2)
 
-                loss, pred = self.model(**it)
+                output = self.model(**it)
+                loss, pred = output['loss'], output['pred']
                 loss = loss.mean()
 
                 eval_loss += loss.data.item()
