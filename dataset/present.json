@@ -22,5 +22,14 @@
         "train": "./dataset/shortanswergrading/s_train_zh.json",
         "dev": "./dataset/shortanswergrading/s_eval_zh.json",
         "vocab_file": "./dataset/shortanswergrading/entities.txt"
+    },
+    "SASFewShot": {
+        "train": "./dataset/SAS/few_shot/s_train_zh.json",
+        "dev": "./dataset/SAS/s_eval_zh.json",
+        "vocab_file": "./dataset/SAS/entities.csv"
+    },
+    "SASPrompt": {
+        "train": "./dataset/SAS/qa.csv",
+        "dev": "./dataset/SAS/qa.csv"
     }
 }

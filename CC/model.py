@@ -1,5 +1,6 @@
 from CC.ICCStandard import IModel
 from CC.models.bert import Bert
+from CC.models.bertlm import BertLM
 from CC.models.r2bert import R2Bert
 from CC.models.albert import Albert
 from CC.models.roberta import Roberta
@@ -35,6 +36,9 @@ class AutoModel(IModel):
         if model_name == 'bert':
             self.model = Bert(tokenizer=self.tokenizer, config_path=bert_config_path,
                               pre_trained_path=bert_pre_trained_path)
+        elif model_name == 'bertlm':
+            self.model = BertLM(tokenizer=self.tokenizer, config_path=bert_config_path,
+                                pre_trained_path=bert_pre_trained_path)
         elif model_name == 'r2bert':
             self.model = R2Bert(tokenizer=self.tokenizer, config_path=bert_config_path,
                                 pre_trained_path=bert_pre_trained_path)
