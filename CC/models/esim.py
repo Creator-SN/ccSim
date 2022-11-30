@@ -100,6 +100,9 @@ class ESIM(nn.Module):
         else:
             fct_loss = nn.MSELoss()
         
+        self.lstm1.flatten_parameters()
+        self.lstm2.flatten_parameters()
+        
         # batch_size * seq_len
         sent1, sent2 = args['input_ids'][:,:args['padding_length']], args['input_ids'][:,args['padding_length']:]
         mask1, mask2 = sent1.eq(0), sent2.eq(0)

@@ -90,6 +90,9 @@ class BIMPM(nn.Module):
         else:
             fct_loss = nn.MSELoss()
         
+        self.context_LSTM.flatten_parameters()
+        self.aggregation_LSTM.flatten_parameters()
+        
         q1, q2 = args['input_ids'][:, :args['padding_length']], args['input_ids'][:, args['padding_length']:]
         # ----- Word Representation Layer -----
         # (batch, seq_len) -> (batch, seq_len, word_dim)

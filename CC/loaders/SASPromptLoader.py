@@ -10,7 +10,7 @@ from torch.utils.data import Dataset
 
 class SASPromptDataset(Dataset):
 
-    def __init__(self, tokenizer, file_name, padding_length=256, shuffle=True):
+    def __init__(self, tokenizer, file_name, fewshot_file_name=None, padding_length=256, shuffle=True):
         self.tokenizer = tokenizer
         self.padding_length = padding_length
         self.thu = thulac.thulac()
@@ -22,6 +22,8 @@ class SASPromptDataset(Dataset):
                 self.compute_list = json.loads(f.read())
         else:
             self.compute_list = self.load_train(file_name)
+            if fewshot_file_name is not None:
+                self.compute_list += self.load_fewshot(fewshot_file_name)
             if not os.path.isdir('./tmp'):
                 os.makedirs('./tmp')
             with open(self.cache_path, 'w') as f:
@@ -54,7 +56,7 @@ class SASPromptDataset(Dataset):
                 final_list.append({
                     'text1': gold_ans,
                     'text2': concat_sentence,
-                    'prompt_text': '存在遗漏',
+                    'prompt_text': '伪造错误',
                     'label': float((i + 1) / len(segments)),
                     'ori_seg_len': len(segments),
                     'cls_label': 1
@@ -89,13 +91,44 @@ class SASPromptDataset(Dataset):
                     err_list.append({
                         'text1': item['text1'],
                         'text2': concat_sentence,
-                        'prompt_text': '存在错误',
+                        'prompt_text': '伪造错误',
                         'label': score,
                         'ori_seg_len': item['ori_seg_len'],
-                        'cls_label': 2
+                        'cls_label': 1
                     })
 
         return final_list + err_list
+
+    def load_fewshot(self, file_name):
+        with open(file_name, encoding='utf-8') as f:
+            self.fewshot_list = json.loads(f.read())
+        result = []
+        for item in self.fewshot_list:
+            r = {}
+            r['text1'] = item['text1']
+            r['text2'] = item['text2']
+            score = float(item['label'])
+            if score == 1:
+                r['prompt_text'] = '完美作答'
+                r['cls_label'] = 0
+            elif score > 0.8:
+                r['prompt_text'] = '基本正确'
+                r['cls_label'] = 2
+            elif score > 0.6:
+                r['prompt_text'] = '存在错误'
+                r['cls_label'] = 3
+            elif score > 0.4:
+                r['prompt_text'] = '较多错误'
+                r['cls_label'] = 4
+            else:
+                r['prompt_text'] = '基本错误'
+                r['cls_label'] = 5
+            r['label'] = float(item['label'])
+            r['ori_seg_len'] = len(item['text1'])
+
+            result.append(r)
+
+        return result
 
     def __getitem__(self, idx):
         item = self.compute_list[idx]
@@ -117,7 +150,8 @@ class SASPromptDataset(Dataset):
         token_type_ids = [0] * (len(text1_T['input_ids']) + 2) + [1] * (
             len(text2_T['input_ids']) + 1) + [1] * (len(prompt_T['input_ids']) + 1)
         token_type_ids = token_type_ids[:self.padding_length]
-        token_type_ids = token_type_ids + [1] * (self.padding_length - len(token_type_ids))
+        token_type_ids = token_type_ids + \
+            [1] * (self.padding_length - len(token_type_ids))
         labels = [-100] + [-100 for _ in text1_T['input_ids']] + [-100] + \
             [-100 for _ in text2_T['input_ids']] + \
             [-100] + prompt_label_T['input_ids'] + SEP

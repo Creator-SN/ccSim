@@ -18,10 +18,30 @@
         "dev": "./dataset/SFR/s_eval_zh.json",
         "vocab_file": "./dataset/SFR/entities.txt"
     },
+    "SFRFewShot": {
+        "train": "./dataset/SFR/few_shot/s_train_zh.json",
+        "dev": "./dataset/SFR/s_eval_zh.json",
+        "vocab_file": "./dataset/SFR/entities.txt"
+    },
+    "SFRPrompt": {
+        "train": "./dataset/SFR/qa.csv",
+        "dev": "./dataset/SFR/qa.csv",
+        "fewshot": "./dataset/SFR/few_shot/s_train_zh.json"
+    },
     "ASAG": {
         "train": "./dataset/shortanswergrading/s_train_zh.json",
         "dev": "./dataset/shortanswergrading/s_eval_zh.json",
         "vocab_file": "./dataset/shortanswergrading/entities.txt"
+    },
+    "ASAGFewShot": {
+        "train": "./dataset/shortanswergrading/few_shot/s_train_zh.json",
+        "dev": "./dataset/shortanswergrading/s_eval_zh.json",
+        "vocab_file": "./dataset/shortanswergrading/entities.txt"
+    },
+    "ASAGPrompt": {
+        "train": "./dataset/shortanswergrading/qa_zh.csv",
+        "dev": "./dataset/shortanswergrading/qa_zh.csv",
+        "fewshot": "./dataset/shortanswergrading/few_shot/s_train_zh.json"
     },
     "SASFewShot": {
         "train": "./dataset/SAS/few_shot/s_train_zh.json",
@@ -30,6 +50,7 @@
     },
     "SASPrompt": {
         "train": "./dataset/SAS/qa.csv",
-        "dev": "./dataset/SAS/qa.csv"
+        "dev": "./dataset/SAS/qa.csv",
+        "prompt": "./dataset/SAS/few_shot/s_train_zh.json"
     }
 }

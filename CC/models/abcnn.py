@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 class ABCNN(nn.Module):
     
-    def __init__(self, embeddings=None, num_layer=1, linear_size=300, max_length=50):
+    def __init__(self, embeddings=None, num_layer=1, linear_size=300, max_length=128):
         super(ABCNN, self).__init__()
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.device = device

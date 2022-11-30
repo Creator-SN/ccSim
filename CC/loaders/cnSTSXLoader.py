@@ -75,6 +75,7 @@ class CNSTSXDataset(Dataset):
     def __getitem__(self, idx):
         item = self.ori_json[self.data_index[idx]]
         words = self.vocab_list[self.data_index[idx]]
+        question = item['question'] if 'question' in item else ''
         s1 = item['text1']
         s2 = item['text2']
         s1_words = words['text1_words']
@@ -147,6 +148,22 @@ class CNSTSXDataset(Dataset):
                 'words_input_ids_2': words_input_ids_1,
                 'words_attention_mask_2': words_attention_mask_1,
                 'labels': torch.tensor(1)
+            }
+        elif self.model_type == 'meta':
+            T = self.tokenizer('{}, {}'.format(question, s1), s2, add_special_tokens=True,
+                               max_length=self.padding_length, padding='max_length', truncation=True)
+            input_ids = torch.tensor(T['input_ids'])
+            attn_mask = torch.tensor(T['attention_mask'])
+            token_type_ids = torch.tensor(T['token_type_ids'])
+            return {
+                'input_ids': input_ids,
+                'attention_mask': attn_mask,
+                'token_type_ids': token_type_ids,
+                'words_input_ids_1': words_input_ids_1,
+                'words_attention_mask_1': words_attention_mask_1,
+                'words_input_ids_2': words_input_ids_2,
+                'words_attention_mask_2': words_attention_mask_2,
+                'labels': torch.tensor(labels)
             }
 
     def __len__(self):

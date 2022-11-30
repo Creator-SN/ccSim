@@ -147,7 +147,8 @@ class Trainer(ITrainer):
 
             model_uid = self.save_model(train_step)
             if eval_call_epoch is None or eval_call_epoch(epoch):
-                self.eval(epoch)
+                X, Y = self.eval(epoch)
+                self.analysis.save_xy(X, Y, uid=current_uid if self.task_name is None else self.task_name)
 
             self.analysis.save_all_records(
                 uid=current_uid if self.task_name is None else self.task_name)
@@ -241,6 +242,7 @@ class Trainer(ITrainer):
                     'spearman': np.mean(eval_spearman),
                     'eval_error': np.mean(eval_error)
                 })
+        return X, Y
 
     def cuda(self, inputX):
         if type(inputX) == tuple:

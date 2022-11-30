@@ -10,6 +10,7 @@ from CC.models.esim import ESIM
 from CC.models.bimpm import BIMPM
 from CC.models.sbert import SBert
 from CC.models.abcnn import ABCNN
+from CC.models.textcnn import TextCNN
 from CC.models.siagru import SiaGRU
 from CC.models.x import XSSBert
 from CC.models.msim import MSIM
@@ -63,6 +64,8 @@ class AutoModel(IModel):
                                pre_trained_path=bert_pre_trained_path)
         elif model_name == 'abcnn':
             self.model = ABCNN()
+        elif model_name == 'textcnn':
+            self.model = TextCNN()
         elif model_name == 'siagru':
             self.model = SiaGRU()
         elif model_name == 'x':

@@ -104,13 +104,14 @@ class Analysis(IAnalysis):
         return ValueError('')
 
     @staticmethod
-    def save_xy(X, Y, dir):
-        if not os.path.isdir(dir):
-            os.makedirs(dir)
+    def save_xy(X, Y, uid):
+        path = f'./data_record/{uid}'
+        if not os.path.isdir(path):
+            os.makedirs(path)
         result = ''
         for i in range(len(X)):
             result += '{}\t{}\n'.format(X[i], Y[i])
-        with open('{}/predict_gold.csv'.format(dir), encoding='utf-8', mode='w+') as f:
+        with open('{}/predict_gold.csv'.format(path), encoding='utf-8', mode='w+') as f:
             f.write(result)
 
     @staticmethod

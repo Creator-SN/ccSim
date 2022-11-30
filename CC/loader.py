@@ -49,15 +49,23 @@ class AutoDataloader(IDataLoader):
             if 'test' in self.data_path:
                 self.test_set = CNSTSXDataset(
                     tokenizer, self.data_path['test'], self.data_path['vocab_file'], padding_length=self.padding_length, model_type=self.model_type, shuffle=False)
+        elif loader_name == "METACNSTS":
+            self.train_set = CNSTSXDataset(
+                tokenizer, self.data_path['train'], self.data_path['vocab_file'], padding_length=self.padding_length, model_type="meta", shuffle=True)
+            self.eval_set = CNSTSXDataset(
+                tokenizer, self.data_path['dev'], self.data_path['vocab_file'], padding_length=self.padding_length, model_type="meta", shuffle=False)
+            if 'test' in self.data_path:
+                self.test_set = CNSTSXDataset(
+                    tokenizer, self.data_path['test'], self.data_path['vocab_file'], padding_length=self.padding_length, model_type="meta", shuffle=False)
         elif loader_name == "SASPrompt":
             # just copy first sentence twice.
             self.train_set = SASPromptDataset(
-                tokenizer, self.data_path["train"], padding_length=self.padding_length, shuffle=True)
+                tokenizer, self.data_path["train"], fewshot_file_name=self.data_path['fewshot'], padding_length=self.padding_length, shuffle=True)
             self.eval_set = SASPromptDataset(
-                tokenizer, self.data_path["train"], padding_length=self.padding_length, shuffle=True)
+                tokenizer, self.data_path["train"], fewshot_file_name=self.data_path['fewshot'], padding_length=self.padding_length, shuffle=True)
             if 'test' in self.data_path:
                 self.test_set = SASPromptDataset(
-                    tokenizer, self.data_path['test'], padding_length=self.padding_length, shuffle=False)
+                    tokenizer, self.data_path['test'], fewshot_file_name=self.data_path['fewshot'], padding_length=self.padding_length, shuffle=False)
 
     def get_data_present(self, present_path):
         if not os.path.exists(present_path):
