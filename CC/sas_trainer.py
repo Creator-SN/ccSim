@@ -92,8 +92,8 @@ class Trainer(ITrainer):
                 loss = loss.mean()
 
                 loss.backward()
-                scheduler.step()
                 optimizer.step()
+                scheduler.step()
                 self.model.zero_grad()
 
                 train_loss += loss.data.item()
