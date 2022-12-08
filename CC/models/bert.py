@@ -27,7 +27,10 @@ class Bert(nn.Module):
         p = F.softmax(logits, dim=-1)
         pred = p[:, 1]
 
-        loss = fct_loss(p[:, 1], args['labels'].view(-1))
+        if 'labels' in args:
+            loss = fct_loss(p[:, 1], args['labels'].view(-1))
+        else:
+            loss = 0
 
         return {
             'loss': loss,

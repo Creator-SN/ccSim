@@ -1,24 +1,21 @@
 import os
 import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-import numpy as np
+from torch.utils.data import DataLoader, Dataset
 from CC.ICCStandard import IPredict
 from CC.model import AutoModel
-from CC.loader import AutoDataloader
-from CC.analysis import Analysis
 from tqdm import tqdm
-from torch.autograd import Variable
+
 
 class Predictor(IPredict):
 
-    def __init__(self, tokenizer, model_name, padding_length=50, resume_path=False, gpu=0):
+    def __init__(self, tokenizer, model_name, padding_length=150, batch_size=32, resume_path=False, gpu=0):
         self.tokenizer = tokenizer
         self.padding_length = padding_length
+        self.batch_size = batch_size
         self.model_init(tokenizer, model_name)
 
-        device = torch.device("cuda:{}".format(gpu) if torch.cuda.is_available() else "cpu")
+        device = torch.device("cuda:{}".format(
+            gpu) if torch.cuda.is_available() else "cpu")
         self.model.to(device)
 
         if not resume_path == False:
@@ -26,55 +23,29 @@ class Predictor(IPredict):
             model_dict = torch.load(resume_path).module.state_dict()
             self.model.load_state_dict(model_dict)
         self.model.to(device)
-    
+
     def model_init(self, tokenizer, model_name):
         print('AutoModel Choose Model: {}\n'.format(model_name))
         a = AutoModel(tokenizer, model_name)
         self.model = a()
-    
-    def data_process(self, X, input_type='bert'):
-        f = self.get_bert_input if input_type == 'bert' else self.get_simase_input
-        if len(X) < 0:
-            raise Exception('The size of input X is zero.')
-        elif type(X[0]) == str:
-            sentences, attention_mask, token_type_ids = f(X[0], X[1])
-            return sentences.unsqueeze(0), attention_mask.unsqueeze(0), token_type_ids.unsqueeze(0)
-        else:
-            sentences = []
-            attention_mask = []
-            token_type_ids = []
-            for item in X:
-                s, a, t = f(item[0], item[1])
-                sentences.append(s.unsqueeze(0))
-                attention_mask.append(a.unsqueeze(0))
-                token_type_ids.append(t.unsqueeze(0))
-            return torch.cat(sentences, 0), torch.cat(attention_mask, 0), torch.cat(token_type_ids, 0)
-    
-    def get_bert_input(self, s1, s2):
-        T = self.tokenizer(s1, s2, add_special_tokens=True, max_length=self.padding_length, padding='max_length', truncation=True)
-        input_ids = torch.tensor(T['input_ids'])
-        attn_mask = torch.tensor(T['attention_mask'])
-        token_type_ids = torch.tensor(T['token_type_ids'])
-        return input_ids, attn_mask, token_type_ids
-    
-    def get_simase_input(self, s1, s2):
-        T1 = self.tokenizer(s1, add_special_tokens=True, max_length=self.padding_length, padding='max_length', truncation=True)
-        ss1 = torch.tensor(T1['input_ids'])
-        mask1 = torch.tensor(T1['attention_mask'])
-        tid1 = torch.tensor(T1['token_type_ids'])
-        T2 = self.tokenizer(s2, add_special_tokens=True, max_length=self.padding_length, padding='max_length', truncation=True)
-        ss2 = torch.tensor(T2['input_ids'])
-        mask2 = torch.tensor(T2['attention_mask'])
-        tid2 = torch.ones(ss2.shape).int()
-        return torch.cat([ss1, ss2]), torch.cat([mask1, mask2]), torch.cat([tid1, tid2])
-    
-    def __call__(self, X, input_type='bert'):
-        return self.predict(X, input_type)
-    
-    def predict(self, X, input_type='bert'):
-        sentences, mask, token_type_ids = self.cuda(self.data_process(X, input_type))
-        return self.model(sentences=sentences, attention_mask=mask, token_type_ids=token_type_ids, padding_length=self.padding_length)
-    
+
+    def __call__(self, sentence_pair_list, input_type='interactive'):
+        return self.predict(sentence_pair_list, input_type)
+
+    def predict(self, sentence_pair_list, input_type='interactive'):
+        predict_iter = DataLoader(PredictDataset(self.tokenizer, sentence_pair_list, self.padding_length, input_type), batch_size=self.batch_size, shuffle=False)
+        self.model.eval()
+        for it in tqdm(predict_iter):
+            for key in it:
+                it[key] = self.cuda(it[key])
+            outputs = self.model(**it)
+            pred_socres = outputs['pred'].tolist()
+            pred = (outputs['pred'] > 0.5).long().tolist()
+            yield {
+                'pred': pred,
+                'pred_socres': pred_socres
+            }
+
     def cuda(self, inputX):
         if type(inputX) == tuple:
             if torch.cuda.is_available():
@@ -87,3 +58,57 @@ class Predictor(IPredict):
             if torch.cuda.is_available():
                 return inputX.cuda()
             return inputX
+
+
+class PredictDataset():
+    def __init__(self, tokenizer, sentence_pair_list, padding_length=150, input_type='interactive'):
+        self.tokenizer = tokenizer
+        self.padding_length = padding_length
+        self.input_type = input_type
+        self.sentence_pair_list = sentence_pair_list
+        if type(sentence_pair_list[0]) == str:
+            self.sentence_pair_list = [sentence_pair_list]
+
+    def get_interactive_input(self, s1, s2):
+        T = self.tokenizer(s1, s2, add_special_tokens=True, max_length=self.padding_length,
+                           padding='max_length', truncation=True)
+        input_ids = torch.tensor(T['input_ids'])
+        attn_mask = torch.tensor(T['attention_mask'])
+        token_type_ids = torch.tensor(T['token_type_ids'])
+        return {
+            'input_ids': input_ids,
+            'attention_mask': attn_mask,
+            'token_type_ids': token_type_ids
+        }
+
+    def get_simase_input(self, s1, s2):
+        left_length = self.padding_length // 2
+        if left_length < self.padding_length / 2:
+            left_length += 1
+        right_length = self.padding_length - left_length
+        T1 = self.tokenizer(s1, add_special_tokens=True, max_length=left_length,
+                            padding='max_length', truncation=True)
+        T2 = self.tokenizer(s2, add_special_tokens=True, max_length=right_length,
+                            padding='max_length', truncation=True)
+        ss1 = torch.tensor(T1['input_ids'])
+        mask1 = torch.tensor(T1['attention_mask'])
+        tid1 = torch.tensor(T1['token_type_ids'])
+        ss2 = torch.tensor(T2['input_ids'])
+        mask2 = torch.tensor(T2['attention_mask'])
+        tid2 = torch.ones(ss2.shape).long()
+        return {
+            'input_ids': torch.cat([ss1, ss2]),
+            'attention_mask': torch.cat([mask1, mask2]),
+            'token_type_ids': torch.cat([tid1, tid2])
+        }
+
+    def __len__(self):
+        return len(self.sentence_pair_list)
+
+    def __getitem__(self, idx):
+        item = self.sentence_pair_list[idx]
+        s1, s2 = item
+        if self.input_type == 'interactive':
+            return self.get_interactive_input(s1, s2)
+        elif self.input_type == 'siamese':
+            return self.get_simase_input(s1, s2)
