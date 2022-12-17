@@ -3,6 +3,7 @@ import os
 import json
 import torch
 import random
+import pickle
 from tqdm import tqdm
 from torch.utils.data import Dataset
 
@@ -12,6 +13,7 @@ class ACSTSDataset(Dataset):
         self.tokenizer = tokenizer
         self.padding_length = padding_length
         self.model_type = model_type
+        self.file_name = file_name
         self.ori_json = self.load_train(file_name)
         self.lexicon_list, self.matched_word_dict = self.load_lexicon(
             lexicon_path)
@@ -62,6 +64,14 @@ class ACSTSDataset(Dataset):
     def compute_match_word_list(self):
         self.matched_word_ids_list = []
         self.matched_word_mask_list = []
+        cache_path = './tmp/{}_matched_word'.format(self.file_name.replace('/', '___'))
+        if os.path.exists(cache_path):
+            with open(os.path.join(cache_path, 'ids'), 'rb') as f:
+                self.matched_word_ids_list = pickle.load(f)
+            with open(os.path.join(cache_path, 'mask'), 'rb') as f:
+                self.matched_word_mask_list = pickle.load(f)
+            return True
+            
         for idx, item in tqdm(enumerate(self.ori_json)):
             s1 = item['text1']
             s2 = item['text2']
@@ -125,6 +135,13 @@ class ACSTSDataset(Dataset):
                 
                 self.matched_word_ids_list.append(matched_word_ids)
                 self.matched_word_mask_list.append(matched_word_mask)
+        
+        if not os.path.exists(cache_path):
+            os.makedirs(cache_path)
+        with open(os.path.join(cache_path, 'ids'), 'wb') as f:
+            pickle.dump(self.matched_word_ids_list, f, 2)
+        with open(os.path.join(cache_path, 'mask'), 'wb') as f:
+            pickle.dump(self.matched_word_mask_list, f, 2)
 
     def __getitem__(self, idx):
         item = self.ori_json[idx]
