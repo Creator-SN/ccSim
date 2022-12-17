@@ -66,6 +66,14 @@ class AutoDataloader(IDataLoader):
             if 'test' in self.data_path:
                 self.test_set = SASPromptDataset(
                     tokenizer, self.data_path['test'], fewshot_file_name=self.data_path['fewshot'], padding_length=self.padding_length, shuffle=False)
+        elif loader_name == "ACSTS":
+            self.train_set = ACSTSDataset(
+                tokenizer, self.data_path['train'], self.data_path['lexicon_path'], padding_length=self.padding_length, model_type=self.model_type, shuffle=True)
+            self.eval_set = ACSTSDataset(
+                tokenizer, self.data_path['dev'], self.data_path['lexicon_path'], padding_length=self.padding_length, model_type=self.model_type, shuffle=False)
+            if 'test' in self.data_path:
+                self.test_set = ACSTSDataset(
+                    tokenizer, self.data_path['test'], self.data_path['lexicon_path'], padding_length=self.padding_length, model_type=self.model_type, shuffle=False)
 
     def get_data_present(self, present_path):
         if not os.path.exists(present_path):

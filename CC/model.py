@@ -15,6 +15,7 @@ from CC.models.siagru import SiaGRU
 from CC.models.x import XSSBert
 from CC.models.msim import MSIM
 from CC.models.simcse import SIMCSE
+from CC.models.ACBert import ACBert
 
 
 class AutoModel(IModel):
@@ -83,6 +84,8 @@ class AutoModel(IModel):
         elif model_name == 'simcse':
             self.model = SIMCSE(
                 tokenizer=self.tokenizer, config_path=bert_config_path, pre_trained_path=bert_pre_trained_path)
+        elif model_name == 'acbert':
+            self.model = ACBert(tokenizer=self.tokenizer, config_path=bert_config_path, pre_trained_path=bert_pre_trained_path, word_embedding_size=40212)
 
     def get_model(self):
         return self.model
