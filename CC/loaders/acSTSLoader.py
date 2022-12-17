@@ -18,6 +18,7 @@ class ACSTSDataset(Dataset):
         self.max_word_len = max_word_len
         if shuffle:
             random.shuffle(self.ori_json)
+        self.compute_match_word_list()
 
     def load_train(self, file_name):
         with open(file_name, encoding='utf-8') as f:
@@ -57,6 +58,73 @@ class ACSTSDataset(Dataset):
             match_list.append(matches)
             mask_list.append(mask)
         return match_list, mask_list
+    
+    def compute_match_word_list(self):
+        self.matched_word_ids_list = []
+        self.matched_word_mask_list = []
+        for idx, item in tqdm(enumerate(self.ori_json)):
+            s1 = item['text1']
+            s2 = item['text2']
+            s1 = s1[:self.padding_length // 2]
+            s2 = s2[:self.padding_length // 2]
+            if self.model_type == 'interactive':
+                T = self.tokenizer(s1, s2, add_special_tokens=True,
+                                max_length=self.padding_length, padding='max_length', truncation=True)
+                input_ids = torch.tensor(T['input_ids'])
+
+                mw_s1, mm_s1 = self.match_word(s1, max_len=self.max_word_len)
+                mw_s2, mm_s2 = self.match_word(s2, max_len=self.max_word_len)
+                mask_token_words = [[0 for _ in range(self.max_word_len)]]
+                mask_token_mask = [[0 for _ in range(self.max_word_len)]]
+
+                matched_word_ids = mask_token_words + mw_s1 + mask_token_words + mw_s2
+                matched_word_mask = mask_token_mask + mm_s1 + mask_token_mask + mm_s2
+                remain = len(input_ids) - len(matched_word_ids)
+                for _ in range(remain):
+                    matched_word_ids += mask_token_words
+                    matched_word_mask += mask_token_mask
+
+                self.matched_word_ids_list.append(matched_word_ids)
+                self.matched_word_mask_list.append(matched_word_mask)
+            
+            elif self.model_type == 'siamese':
+                left_length = self.padding_length // 2
+                if left_length < self.padding_length / 2:
+                    left_length += 1
+                right_length = self.padding_length - left_length
+                s1 = s1[:left_length]
+                s2 = s2[:right_length]
+                T1 = self.tokenizer(s1, add_special_tokens=True,
+                                    max_length=left_length, padding='max_length', truncation=True)
+                T2 = self.tokenizer(s2, add_special_tokens=True,
+                                    max_length=right_length, padding='max_length', truncation=True)
+                ss1 = torch.tensor(T1['input_ids'])
+                ss2 = torch.tensor(T2['input_ids'])
+
+                mw_s1, mm_s1 = self.match_word(s1, max_len=self.max_word_len)
+                mw_s2, mm_s2 = self.match_word(s2, max_len=self.max_word_len)
+                mask_token_words = [[0 for _ in range(self.max_word_len)]]
+                mask_token_mask = [[0 for _ in range(self.max_word_len)]]
+                
+                matched_word_ids1 = mask_token_words + mw_s1
+                matched_word_mask1 = mask_token_mask + mm_s1
+                remain = len(ss1) - len(matched_word_ids1)
+                for _ in range(remain):
+                    matched_word_ids1 += mask_token_words
+                    matched_word_mask1 += mask_token_mask
+                
+                matched_word_ids2 = mask_token_words + mw_s2
+                matched_word_mask2 = mask_token_mask + mm_s2
+                remain = len(ss2) - len(matched_word_ids2)
+                for _ in range(remain):
+                    matched_word_ids2 += mask_token_words
+                    matched_word_mask2 += mask_token_mask
+                
+                matched_word_ids = matched_word_ids1 + matched_word_ids2
+                matched_word_mask = matched_word_mask1 + matched_word_mask2
+                
+                self.matched_word_ids_list.append(matched_word_ids)
+                self.matched_word_mask_list.append(matched_word_mask)
 
     def __getitem__(self, idx):
         item = self.ori_json[idx]
@@ -72,17 +140,8 @@ class ACSTSDataset(Dataset):
             attn_mask = torch.tensor(T['attention_mask'])
             token_type_ids = torch.tensor(T['token_type_ids'])
 
-            mw_s1, mm_s1 = self.match_word(s1, max_len=self.max_word_len)
-            mw_s2, mm_s2 = self.match_word(s2, max_len=self.max_word_len)
-            mask_token_words = [[0 for _ in range(self.max_word_len)]]
-            mask_token_mask = [[0 for _ in range(self.max_word_len)]]
-
-            matched_word_ids = mask_token_words + mw_s1 + mask_token_words + mw_s2
-            matched_word_mask = mask_token_mask + mm_s1 + mask_token_mask + mm_s2
-            remain = len(input_ids) - len(matched_word_ids)
-            for _ in range(remain):
-                matched_word_ids += mask_token_words
-                matched_word_mask += mask_token_mask
+            matched_word_ids = self.matched_word_ids_list[idx]
+            matched_word_mask = self.matched_word_mask_list[idx]
 
             return {
                 'input_ids': input_ids,
@@ -110,28 +169,9 @@ class ACSTSDataset(Dataset):
             ss2 = torch.tensor(T2['input_ids'])
             mask2 = torch.tensor(T2['attention_mask'])
             tid2 = torch.ones(ss2.shape).long()
-
-            mw_s1, mm_s1 = self.match_word(s1, max_len=self.max_word_len)
-            mw_s2, mm_s2 = self.match_word(s2, max_len=self.max_word_len)
-            mask_token_words = [[0 for _ in range(self.max_word_len)]]
-            mask_token_mask = [[0 for _ in range(self.max_word_len)]]
             
-            matched_word_ids1 = mask_token_words + mw_s1
-            matched_word_mask1 = mask_token_mask + mm_s1
-            remain = len(ss1) - len(matched_word_ids1)
-            for _ in range(remain):
-                matched_word_ids1 += mask_token_words
-                matched_word_mask1 += mask_token_mask
-            
-            matched_word_ids2 = mask_token_words + mw_s2
-            matched_word_mask2 = mask_token_mask + mm_s2
-            remain = len(ss2) - len(matched_word_ids2)
-            for _ in range(remain):
-                matched_word_ids2 += mask_token_words
-                matched_word_mask2 += mask_token_mask
-            
-            matched_word_ids = matched_word_ids1 + matched_word_ids2
-            matched_word_mask = matched_word_mask1 + matched_word_mask2
+            matched_word_ids = self.matched_word_ids_list[idx]
+            matched_word_mask = self.matched_word_mask_list[idx]
             
             return {
                 'input_ids': torch.cat([ss1, ss2]),
