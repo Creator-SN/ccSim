@@ -85,7 +85,10 @@ class AutoModel(IModel):
             self.model = SIMCSE(
                 tokenizer=self.tokenizer, config_path=bert_config_path, pre_trained_path=bert_pre_trained_path)
         elif model_name == 'acbert':
-            self.model = ACBert(tokenizer=self.tokenizer, config_path=bert_config_path, pre_trained_path=bert_pre_trained_path, word_embedding_size=40212)
+            import pickle
+            with open('./embedding/CNSTS/ori.numpy', 'rb') as f:
+                pretrained_embeddings = pickle.load(f)
+            self.model = ACBert(tokenizer=self.tokenizer, config_path=bert_config_path, pre_trained_path=bert_pre_trained_path, word_embedding_size=40210, pretrained_embeddings=pretrained_embeddings)
 
     def get_model(self):
         return self.model

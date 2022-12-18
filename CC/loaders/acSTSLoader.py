@@ -18,8 +18,9 @@ class ACSTSDataset(Dataset):
         self.lexicon_list, self.matched_word_dict = self.load_lexicon(
             lexicon_path)
         self.max_word_len = max_word_len
+        self.random_idx_list = [idx for idx in range(len(self.ori_json))]
         if shuffle:
-            random.shuffle(self.ori_json)
+            random.shuffle(self.random_idx_list)
         self.compute_match_word_list()
 
     def load_train(self, file_name):
@@ -50,7 +51,7 @@ class ACSTSDataset(Dataset):
             matches = []
             for j in range(i + 1, len(seqence)):
                 word = seqence[i:j]
-                if word in self.lexicon_list:
+                if word in self.matched_word_dict:
                     matches.append(self.matched_word_dict[word])
             matches = matches[:max_len]
             remain = max_len - len(matches)
@@ -64,7 +65,7 @@ class ACSTSDataset(Dataset):
     def compute_match_word_list(self):
         self.matched_word_ids_list = []
         self.matched_word_mask_list = []
-        cache_path = './tmp/{}_matched_word'.format(self.file_name.replace('/', '___'))
+        cache_path = './tmp/{}_matched_word_{}'.format(self.file_name.replace('/', '___'), self.padding_length)
         if os.path.exists(cache_path):
             with open(os.path.join(cache_path, 'ids'), 'rb') as f:
                 self.matched_word_ids_list = pickle.load(f)
@@ -144,6 +145,7 @@ class ACSTSDataset(Dataset):
             pickle.dump(self.matched_word_mask_list, f, 2)
 
     def __getitem__(self, idx):
+        idx = self.random_idx_list[idx]
         item = self.ori_json[idx]
         s1 = item['text1']
         s2 = item['text2']

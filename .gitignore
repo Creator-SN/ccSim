@@ -4,3 +4,4 @@ model/
 save_model/
 *.pth
 tmp/
+embedding/
