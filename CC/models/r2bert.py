@@ -23,8 +23,8 @@ class R2Bert(nn.Module):
         p = F.softmax(logits, dim=-1)
         pred = p[:, 1]
 
-        loss = 0.5 * mse_loss(p[:, 1], args['labels'].view(-1)) + \
-            0.5 * bce_loss(p[:, 1], args['labels'].view(-1))
+        loss = 0.5 * mse_loss(p[:, 1], args['labels'].float().view(-1)) + \
+            0.5 * bce_loss(p[:, 1], args['labels'].float().view(-1))
 
         return {
             'loss': loss,
