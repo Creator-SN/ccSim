@@ -4,12 +4,13 @@ import json
 import torch
 import random
 import pickle
+import numpy as np
 from tqdm import tqdm
 from torch.utils.data import Dataset
 
 
 class ACSTSDataset(Dataset):
-    def __init__(self, tokenizer, file_name, lexicon_path, padding_length=128, max_word_len=4, model_type='interactive', shuffle=True):
+    def __init__(self, tokenizer, file_name, lexicon_path, padding_length=128, max_word_len=30, model_type='interactive', shuffle=True):
         self.tokenizer = tokenizer
         self.padding_length = padding_length
         self.model_type = model_type
@@ -47,12 +48,14 @@ class ACSTSDataset(Dataset):
     def match_word(self, seqence, max_len=8):
         match_list = []
         mask_list = []
+        count = 0
         for i in range(len(seqence)):
             matches = []
             for j in range(i + 1, len(seqence)):
                 word = seqence[i:j]
                 if word in self.matched_word_dict:
                     matches.append(self.matched_word_dict[word])
+                    count += 1
             matches = matches[:max_len]
             remain = max_len - len(matches)
             for i in range(remain):
@@ -60,7 +63,7 @@ class ACSTSDataset(Dataset):
             mask = [1 if m != 0 else 0 for m in matches]
             match_list.append(matches)
             mask_list.append(mask)
-        return match_list, mask_list
+        return match_list, mask_list, count
     
     def compute_match_word_list(self):
         self.matched_word_ids_list = []
@@ -72,7 +75,8 @@ class ACSTSDataset(Dataset):
             with open(os.path.join(cache_path, 'mask'), 'rb') as f:
                 self.matched_word_mask_list = pickle.load(f)
             return True
-            
+        
+        count = []
         for idx, item in tqdm(enumerate(self.ori_json)):
             s1 = item['text1']
             s2 = item['text2']
@@ -83,8 +87,9 @@ class ACSTSDataset(Dataset):
                                 max_length=self.padding_length, padding='max_length', truncation=True)
                 input_ids = torch.tensor(T['input_ids'])
 
-                mw_s1, mm_s1 = self.match_word(s1, max_len=self.max_word_len)
-                mw_s2, mm_s2 = self.match_word(s2, max_len=self.max_word_len)
+                mw_s1, mm_s1, count1 = self.match_word(s1, max_len=self.max_word_len)
+                mw_s2, mm_s2, count2 = self.match_word(s2, max_len=self.max_word_len)
+                count.append(count1 + count2)
                 mask_token_words = [[0 for _ in range(self.max_word_len)]]
                 mask_token_mask = [[0 for _ in range(self.max_word_len)]]
 
@@ -112,8 +117,9 @@ class ACSTSDataset(Dataset):
                 ss1 = torch.tensor(T1['input_ids'])
                 ss2 = torch.tensor(T2['input_ids'])
 
-                mw_s1, mm_s1 = self.match_word(s1, max_len=self.max_word_len)
-                mw_s2, mm_s2 = self.match_word(s2, max_len=self.max_word_len)
+                mw_s1, mm_s1, count1 = self.match_word(s1, max_len=self.max_word_len)
+                mw_s2, mm_s2, count2 = self.match_word(s2, max_len=self.max_word_len)
+                count.append(count1 + count2)
                 mask_token_words = [[0 for _ in range(self.max_word_len)]]
                 mask_token_mask = [[0 for _ in range(self.max_word_len)]]
                 
@@ -137,6 +143,8 @@ class ACSTSDataset(Dataset):
                 self.matched_word_ids_list.append(matched_word_ids)
                 self.matched_word_mask_list.append(matched_word_mask)
         
+        print('Collected {} matched words, average {}, max {}, min {}\n'.format(np.sum(count), np.mean(count), np.max(count), np.min(count)))
+
         if not os.path.exists(cache_path):
             os.makedirs(cache_path)
         with open(os.path.join(cache_path, 'ids'), 'wb') as f:

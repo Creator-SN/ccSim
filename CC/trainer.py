@@ -107,7 +107,8 @@ class Trainer(ITrainer):
 
             model_uid = self.save_model(train_step)
             if eval_call_epoch is None or eval_call_epoch(epoch):
-                self.eval(epoch)
+                X, Y = self.eval(epoch)
+                self.analysis.save_xy(X, Y, uid=current_uid if self.task_name is None else self.task_name)
 
             self.analysis.save_all_records(
                 uid=current_uid if self.task_name is None else self.task_name)
@@ -130,6 +131,8 @@ class Trainer(ITrainer):
             eval_count = 0
             eval_loss = 0
             eval_acc = []
+            X = []
+            Y = []
 
             eval_iter = tqdm(self.eval_loader)
             self.model.eval()
@@ -149,6 +152,8 @@ class Trainer(ITrainer):
 
                 gold = it['labels']
                 p = (pred > 0.5).float()
+                X += p.tolist()
+                Y += gold.tolist()
                 eval_acc.append((gold == p).float().mean().item())
 
                 eval_iter.set_description(
@@ -161,6 +166,8 @@ class Trainer(ITrainer):
                 'eval_loss': eval_loss / eval_count,
                 'eval_acc': np.mean(eval_acc)
             })
+        
+        return X, Y
 
     def cuda(self, inputX):
         if type(inputX) == tuple:
