@@ -61,5 +61,9 @@
     "CNSTSCL": {
         "train": "./dataset/CHIP-STS/CHIP-STS_CL.txt",
         "dev": "./dataset/CHIP-STS/CHIP-STS_Dev.txt"
+    },
+    "RemixCL": {
+        "train": "./dataset/CHIP-STS/remix_cl.txt",
+        "dev": "./dataset/CHIP-STS/CHIP-STS_Dev.txt"
     }
 }
