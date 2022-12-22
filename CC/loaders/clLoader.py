@@ -21,10 +21,23 @@ class CLDataset(Dataset):
         if ori_data[-1] == '':
             ori_data = ori_data[:-1]
         result = []
+        symbols = ['。', '，', '、', ')']
         for line in ori_data:
             while len(line) > self.padding_length:
-                result.append(line[:self.padding_length])
-                line = line[self.padding_length:]
+                tmp = line[:self.padding_length]
+                rindex_list = []
+                for symbol in symbols:
+                    try:
+                        rindex_list.append(tmp.rindex(symbol))
+                    except:
+                        pass
+                sorted(rindex_list, reverse=True)
+                if len(rindex_list) > 0:
+                    last_index = rindex_list[0] + 1
+                else:
+                    last_index = self.padding_length
+                result.append(line[:last_index])
+                line = line[last_index:]
             result.append(line)
         return ori_data, result
     
