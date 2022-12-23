@@ -108,7 +108,7 @@ class Trainer(ITrainer):
             model_uid = self.save_model(train_step)
             if eval_call_epoch is None or eval_call_epoch(epoch):
                 X, Y = self.eval(epoch)
-                self.analysis.save_xy(X, Y, uid=current_uid if self.task_name is None else self.task_name)
+                self.analysis.save_xy(X, Y, uid=current_uid if self.task_name is None else self.task_name, step=train_step)
 
             self.analysis.save_all_records(
                 uid=current_uid if self.task_name is None else self.task_name)
