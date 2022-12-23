@@ -48,6 +48,8 @@ class ACSTSDataset(Dataset):
     def match_word(self, seqence, max_len=8):
         match_list = []
         mask_list = []
+        seq_matches = []
+        seq_mask = []
         count = 0
         for i in range(len(seqence)):
             matches = []
@@ -56,6 +58,9 @@ class ACSTSDataset(Dataset):
                 if word in self.matched_word_dict:
                     matches.append(self.matched_word_dict[word])
                     count += 1
+
+                    if word not in seq_matches:
+                        seq_matches.append(self.matched_word_dict[word])
             matches = matches[:max_len]
             remain = max_len - len(matches)
             for i in range(remain):
@@ -63,17 +68,29 @@ class ACSTSDataset(Dataset):
             mask = [1 if m != 0 else 0 for m in matches]
             match_list.append(matches)
             mask_list.append(mask)
-        return match_list, mask_list, count
+        
+        seq_matches = seq_matches[:max_len]
+        remain = max_len - len(seq_matches)
+        for i in range(remain):
+            seq_matches.append(0)
+        seq_mask = [1 if m != 0 else 0 for m in seq_matches]
+        return match_list, mask_list, seq_matches, seq_mask, count
     
     def compute_match_word_list(self):
         self.matched_word_ids_list = []
         self.matched_word_mask_list = []
+        self.sequence_word_ids_list = []
+        self.sequence_word_mask_list = []
         cache_path = './tmp/{}_matched_word_{}'.format(self.file_name.replace('/', '___'), self.padding_length)
         if os.path.exists(cache_path):
             with open(os.path.join(cache_path, 'ids'), 'rb') as f:
                 self.matched_word_ids_list = pickle.load(f)
             with open(os.path.join(cache_path, 'mask'), 'rb') as f:
                 self.matched_word_mask_list = pickle.load(f)
+            with open(os.path.join(cache_path, 'seq_ids'), 'rb') as f:
+                self.sequence_word_ids_list = pickle.load(f)
+            with open(os.path.join(cache_path, 'seq_mask'), 'rb') as f:
+                self.sequence_word_mask_list = pickle.load(f)
             return True
         
         count = []
@@ -87,14 +104,16 @@ class ACSTSDataset(Dataset):
                                 max_length=self.padding_length, padding='max_length', truncation=True)
                 input_ids = torch.tensor(T['input_ids'])
 
-                mw_s1, mm_s1, count1 = self.match_word(s1, max_len=self.max_word_len)
-                mw_s2, mm_s2, count2 = self.match_word(s2, max_len=self.max_word_len)
+                mw_s1, mm_s1, seqw_s1, seqm_s1, count1 = self.match_word(s1, max_len=self.max_word_len)
+                mw_s2, mm_s2, seqw_s2, seqm_s2, count2 = self.match_word(s2, max_len=self.max_word_len)
                 count.append(count1 + count2)
                 mask_token_words = [[0 for _ in range(self.max_word_len)]]
                 mask_token_mask = [[0 for _ in range(self.max_word_len)]]
 
                 matched_word_ids = mask_token_words + mw_s1 + mask_token_words + mw_s2
                 matched_word_mask = mask_token_mask + mm_s1 + mask_token_mask + mm_s2
+                sequence_word_ids = [seqw_s1] + [seqw_s2]
+                sequence_word_mask = [seqm_s1] + [seqm_s2]
                 remain = len(input_ids) - len(matched_word_ids)
                 for _ in range(remain):
                     matched_word_ids += mask_token_words
@@ -117,8 +136,8 @@ class ACSTSDataset(Dataset):
                 ss1 = torch.tensor(T1['input_ids'])
                 ss2 = torch.tensor(T2['input_ids'])
 
-                mw_s1, mm_s1, count1 = self.match_word(s1, max_len=self.max_word_len)
-                mw_s2, mm_s2, count2 = self.match_word(s2, max_len=self.max_word_len)
+                mw_s1, mm_s1, seqw_s1, seqm_s1, count1 = self.match_word(s1, max_len=self.max_word_len)
+                mw_s2, mm_s2, seqw_s2, seqm_s2, count2 = self.match_word(s2, max_len=self.max_word_len)
                 count.append(count1 + count2)
                 mask_token_words = [[0 for _ in range(self.max_word_len)]]
                 mask_token_mask = [[0 for _ in range(self.max_word_len)]]
@@ -139,9 +158,13 @@ class ACSTSDataset(Dataset):
                 
                 matched_word_ids = matched_word_ids1 + matched_word_ids2
                 matched_word_mask = matched_word_mask1 + matched_word_mask2
+                sequence_word_ids = [seqw_s1] + [seqw_s2]
+                sequence_word_mask = [seqm_s1] + [seqm_s2]
                 
                 self.matched_word_ids_list.append(matched_word_ids)
                 self.matched_word_mask_list.append(matched_word_mask)
+                self.sequence_word_ids_list.append(sequence_word_ids)
+                self.sequence_word_mask_list.append(sequence_word_mask)
         
         print('Collected {} matched words, average {}, max {}, min {}\n'.format(np.sum(count), np.mean(count), np.max(count), np.min(count)))
 
@@ -151,6 +174,10 @@ class ACSTSDataset(Dataset):
             pickle.dump(self.matched_word_ids_list, f, 2)
         with open(os.path.join(cache_path, 'mask'), 'wb') as f:
             pickle.dump(self.matched_word_mask_list, f, 2)
+        with open(os.path.join(cache_path, 'seq_ids'), 'wb') as f:
+            pickle.dump(self.sequence_word_ids_list, f, 2)
+        with open(os.path.join(cache_path, 'seq_mask'), 'wb') as f:
+            pickle.dump(self.sequence_word_mask_list, f, 2)
 
     def __getitem__(self, idx):
         idx = self.random_idx_list[idx]
@@ -169,6 +196,8 @@ class ACSTSDataset(Dataset):
 
             matched_word_ids = self.matched_word_ids_list[idx]
             matched_word_mask = self.matched_word_mask_list[idx]
+            sequence_word_ids = self.sequence_word_ids_list[idx]
+            sequence_word_mask = self.sequence_word_mask_list[idx]
 
             return {
                 'input_ids': input_ids,
@@ -176,6 +205,8 @@ class ACSTSDataset(Dataset):
                 'token_type_ids': token_type_ids,
                 'matched_word_ids': torch.tensor(matched_word_ids),
                 'matched_word_mask': torch.tensor(matched_word_mask),
+                'sequence_word_ids': torch.tensor(sequence_word_ids),
+                'sequence_word_mask': torch.tensor(sequence_word_mask),
                 'labels': torch.tensor(labels)
             }
         
@@ -199,6 +230,8 @@ class ACSTSDataset(Dataset):
             
             matched_word_ids = self.matched_word_ids_list[idx]
             matched_word_mask = self.matched_word_mask_list[idx]
+            sequence_word_ids = self.sequence_word_ids_list[idx]
+            sequence_word_mask = self.sequence_word_mask_list[idx]
             
             return {
                 'input_ids': torch.cat([ss1, ss2]),
@@ -206,6 +239,8 @@ class ACSTSDataset(Dataset):
                 'token_type_ids': torch.cat([tid1, tid2]),
                 'matched_word_ids': torch.tensor(matched_word_ids),
                 'matched_word_mask': torch.tensor(matched_word_mask),
+                'sequence_word_ids': torch.tensor(sequence_word_ids),
+                'sequence_word_mask': torch.tensor(sequence_word_mask),
                 'labels': torch.tensor(labels)
             }
 
