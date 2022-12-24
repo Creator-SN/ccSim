@@ -152,7 +152,7 @@ class Trainer(ITrainer):
 
                 gold = it['labels']
                 p = (pred > 0.5).float()
-                X += p.tolist()
+                X += p.long().tolist()
                 Y += gold.tolist()
                 eval_acc.append((gold == p).float().mean().item())
 
