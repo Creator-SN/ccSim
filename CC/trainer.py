@@ -38,21 +38,23 @@ class Trainer(ITrainer):
                            model_type, data_present_path, padding_length)
         self.train_loader, self.eval_loader = d(
             batch_size, batch_size_eval, eval_mode)
-
-    def __call__(self, resume_path=None, resume_step=None, num_epochs=30, lr=5e-5, fct_loss='MSELoss', gpu=[0, 1, 2, 3], eval_call_epoch=None):
-        return self.train(resume_path=resume_path, resume_step=resume_step,
-                   num_epochs=num_epochs, lr=lr, fct_loss=fct_loss, gpu=gpu, eval_call_epoch=eval_call_epoch)
-
-    def train(self, resume_path=None, resume_step=None, num_epochs=30, lr=5e-5, fct_loss='MSELoss', gpu=[0, 1, 2, 3], eval_call_epoch=None):
+    
+    def model_to_device(self, resume_path=None, gpu=[0]):
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model.cuda()
         self.model = torch.nn.DataParallel(self.model, device_ids=gpu).cuda()
 
         if resume_path is not None:
             print('Accessing Resume PATH: {} ...\n'.format(resume_path))
-            model_dict = torch.load(resume_path).module.state_dict()
-            self.model.module.load_state_dict(model_dict)
+            self.model = torch.load(resume_path)
         self.model.to(device)
+
+    def __call__(self, resume_path=None, resume_step=None, num_epochs=30, lr=5e-5, fct_loss='MSELoss', gpu=[0, 1, 2, 3], eval_call_epoch=None):
+        return self.train(resume_path=resume_path, resume_step=resume_step,
+                   num_epochs=num_epochs, lr=lr, fct_loss=fct_loss, gpu=gpu, eval_call_epoch=eval_call_epoch)
+
+    def train(self, resume_path=None, resume_step=None, num_epochs=30, lr=5e-5, fct_loss='MSELoss', gpu=[0, 1, 2, 3], eval_call_epoch=None):
+        self.model_to_device(resume_path=resume_path, gpu=gpu)
 
         optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=0.)
         scheduler = get_linear_schedule_with_warmup(optimizer, 190, 80000)
@@ -126,7 +128,10 @@ class Trainer(ITrainer):
         self.analysis.append_model_record(current_step)
         return current_step
 
-    def eval(self, epoch):
+    def eval(self, epoch, resume_path=None, gpu=[0]):
+        if resume_path is not None:
+            self.model_to_device(resume_path=resume_path, gpu=gpu)
+        
         with torch.no_grad():
             eval_count = 0
             eval_loss = 0
@@ -166,6 +171,9 @@ class Trainer(ITrainer):
                 'eval_loss': eval_loss / eval_count,
                 'eval_acc': np.mean(eval_acc)
             })
+        
+        if resume_path is not None:
+            self.analysis.save_xy(X, Y, uid='0' if self.task_name is None else self.task_name, step=0)
         
         return X, Y
 

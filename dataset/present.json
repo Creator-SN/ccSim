@@ -13,6 +13,11 @@
         "dev": "./dataset/CHIP-STS/CHIP-STS_dev.json",
         "lexicon_path": "./dataset/CHIP-STS/ner_final"
     },
+    "CNSTSAC_CONTEST": {
+        "train": "./dataset/CHIP-STS/CHIP-STS_train.json",
+        "dev": "./dataset/CHIP-STS/CHIP-STS_test_contest.json",
+        "lexicon_path": "./dataset/CHIP-STS/ner_final"
+    },
     "SAS": {
         "train": "./dataset/SAS/s_train_zh.json",
         "dev": "./dataset/SAS/s_eval_zh.json",
