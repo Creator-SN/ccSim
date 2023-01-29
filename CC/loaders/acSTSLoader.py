@@ -148,6 +148,9 @@ class ACSTSDataset(Dataset):
                 for _ in range(remain):
                     matched_word_ids1 += mask_token_words
                     matched_word_mask1 += mask_token_mask
+                # 当句子长度等于padding_length时，matched_word_ids1的长度会超过padding_length
+                matched_word_ids1 = matched_word_ids1[:left_length]
+                matched_word_mask1 = matched_word_mask1[:left_length]
                 
                 matched_word_ids2 = mask_token_words + mw_s2
                 matched_word_mask2 = mask_token_mask + mm_s2
@@ -155,6 +158,8 @@ class ACSTSDataset(Dataset):
                 for _ in range(remain):
                     matched_word_ids2 += mask_token_words
                     matched_word_mask2 += mask_token_mask
+                matched_word_ids2 = matched_word_ids2[:right_length]
+                matched_word_mask2 = matched_word_mask2[:right_length]
                 
                 matched_word_ids = matched_word_ids1 + matched_word_ids2
                 matched_word_mask = matched_word_mask1 + matched_word_mask2
@@ -313,7 +318,7 @@ class WordTokenizer():
                 token_type_ids = [0 for _ in input_ids]
         else:
             if add_special_tokens:
-                max_half_len = max_length - 2
+                max_half_len = max_length - 1
             else:
                 max_half_len = max_length
 
