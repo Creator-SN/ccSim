@@ -18,6 +18,177 @@
         "dev": "./dataset/CHIP-STS/CHIP-STS_test_contest.json",
         "lexicon_path": "./dataset/CHIP-STS/ner_final"
     },
+    "CNSTS_250": {
+        "train": "./dataset/fewshot/CHIP-STS_250/CHIP-STS_train.json",
+        "dev": "./dataset/CHIP-STS/CHIP-STS_dev.json"
+    },
+    "CNSTS_250AC": {
+        "train": "./dataset/fewshot/CHIP-STS_250/CHIP-STS_train.json",
+        "dev": "./dataset/CHIP-STS/CHIP-STS_dev.json",
+        "lexicon_path": "./dataset/CHIP-STS/ner_final"
+    },
+    "CNSTS_500": {
+        "train": "./dataset/fewshot/CHIP-STS_500/CHIP-STS_train.json",
+        "dev": "./dataset/CHIP-STS/CHIP-STS_dev.json"
+    },
+    "CNSTS_500AC": {
+        "train": "./dataset/fewshot/CHIP-STS_500/CHIP-STS_train.json",
+        "dev": "./dataset/CHIP-STS/CHIP-STS_dev.json",
+        "lexicon_path": "./dataset/CHIP-STS/ner_final"
+    },
+    "CNSTS_1000": {
+        "train": "./dataset/fewshot/CHIP-STS_1000/CHIP-STS_train.json",
+        "dev": "./dataset/CHIP-STS/CHIP-STS_dev.json"
+    },
+    "CNSTS_1000AC": {
+        "train": "./dataset/fewshot/CHIP-STS_1000/CHIP-STS_train.json",
+        "dev": "./dataset/CHIP-STS/CHIP-STS_dev.json",
+        "lexicon_path": "./dataset/CHIP-STS/ner_final"
+    },
+    "CNSTS_2000": {
+        "train": "./dataset/fewshot/CHIP-STS_2000/CHIP-STS_train.json",
+        "dev": "./dataset/CHIP-STS/CHIP-STS_dev.json"
+    },
+    "CNSTS_2000AC": {
+        "train": "./dataset/fewshot/CHIP-STS_2000/CHIP-STS_train.json",
+        "dev": "./dataset/CHIP-STS/CHIP-STS_dev.json",
+        "lexicon_path": "./dataset/CHIP-STS/ner_final"
+    },
+    "BQ": {
+        "train": "./dataset/bq_corpus/train.json",
+        "dev": "./dataset/bq_corpus/dev.json"
+    },
+    "BQAC": {
+        "train": "./dataset/bq_corpus/train.json",
+        "dev": "./dataset/bq_corpus/dev.json",
+        "lexicon_path": "./dataset/bq_corpus/ner"
+    },
+    "BQ_250": {
+        "train": "./dataset/fewshot/bq_corpus_250/train.json",
+        "dev": "./dataset/bq_corpus/dev.json"
+    },
+    "BQ_250AC": {
+        "train": "./dataset/fewshot/bq_corpus_250/train.json",
+        "dev": "./dataset/bq_corpus/dev.json",
+        "lexicon_path": "./dataset/bq_corpus/ner"
+    },
+    "BQ_500": {
+        "train": "./dataset/fewshot/bq_corpus_500/train.json",
+        "dev": "./dataset/bq_corpus/dev.json"
+    },
+    "BQ_500AC": {
+        "train": "./dataset/fewshot/bq_corpus_500/train.json",
+        "dev": "./dataset/bq_corpus/dev.json",
+        "lexicon_path": "./dataset/bq_corpus/ner"
+    },
+    "BQ_1000": {
+        "train": "./dataset/fewshot/bq_corpus_1000/train.json",
+        "dev": "./dataset/bq_corpus/dev.json"
+    },
+    "BQ_1000AC": {
+        "train": "./dataset/fewshot/bq_corpus_1000/train.json",
+        "dev": "./dataset/bq_corpus/dev.json",
+        "lexicon_path": "./dataset/bq_corpus/ner"
+    },
+    "BQ_2000": {
+        "train": "./dataset/fewshot/bq_corpus_2000/train.json",
+        "dev": "./dataset/bq_corpus/dev.json"
+    },
+    "BQ_2000AC": {
+        "train": "./dataset/fewshot/bq_corpus_2000/train.json",
+        "dev": "./dataset/bq_corpus/dev.json",
+        "lexicon_path": "./dataset/bq_corpus/ner"
+    },
+    "ATEC": {
+        "train": "./dataset/ATEC/train.json",
+        "dev": "./dataset/ATEC/test.json"
+    },
+    "ATECAC": {
+        "train": "./dataset/ATEC/train.json",
+        "dev": "./dataset/ATEC/test.json",
+        "lexicon_path": "./dataset/ATEC/ner"
+    },
+    "ATEC_250": {
+        "train": "./dataset/fewshot/ATEC_250/train.json",
+        "dev": "./dataset/ATEC/test.json"
+    },
+    "ATEC_250AC": {
+        "train": "./dataset/fewshot/ATEC_250/train.json",
+        "dev": "./dataset/ATEC/test.json",
+        "lexicon_path": "./dataset/ATEC/ner"
+    },
+    "ATEC_500": {
+        "train": "./dataset/fewshot/ATEC_500/train.json",
+        "dev": "./dataset/ATEC/test.json"
+    },
+    "ATEC_500AC": {
+        "train": "./dataset/fewshot/ATEC_500/train.json",
+        "dev": "./dataset/ATEC/test.json",
+        "lexicon_path": "./dataset/ATEC/ner"
+    },
+    "ATEC_1000": {
+        "train": "./dataset/fewshot/ATEC_1000/train.json",
+        "dev": "./dataset/ATEC/test.json"
+    },
+    "ATEC_1000AC": {
+        "train": "./dataset/fewshot/ATEC_1000/train.json",
+        "dev": "./dataset/ATEC/test.json",
+        "lexicon_path": "./dataset/ATEC/ner"
+    },
+    "ATEC_2000": {
+        "train": "./dataset/fewshot/ATEC_2000/train.json",
+        "dev": "./dataset/ATEC/test.json"
+    },
+    "ATEC_2000AC": {
+        "train": "./dataset/fewshot/ATEC_2000/train.json",
+        "dev": "./dataset/ATEC/test.json",
+        "lexicon_path": "./dataset/ATEC/ner"
+    },
+    "COVID-19": {
+        "train": "./dataset/COVID-19/train.json",
+        "dev": "./dataset/COVID-19/dev.json"
+    },
+    "COVID-19AC": {
+        "train": "./dataset/COVID-19/train.json",
+        "dev": "./dataset/COVID-19/dev.json",
+        "lexicon_path": "./dataset/COVID-19/ner_final"
+    },
+    "COVID-19_250": {
+        "train": "./dataset/fewshot/COVID-19_250/train.json",
+        "dev": "./dataset/COVID-19/dev.json"
+    },
+    "COVID-19_250AC": {
+        "train": "./dataset/fewshot/COVID-19_250/train.json",
+        "dev": "./dataset/COVID-19/dev.json",
+        "lexicon_path": "./dataset/COVID-19/ner_final"
+    },
+    "COVID-19_500": {
+        "train": "./dataset/fewshot/COVID-19_500/train.json",
+        "dev": "./dataset/COVID-19/dev.json"
+    },
+    "COVID-19_500AC": {
+        "train": "./dataset/fewshot/COVID-19_500/train.json",
+        "dev": "./dataset/COVID-19/dev.json",
+        "lexicon_path": "./dataset/COVID-19/ner_final"
+    },
+    "COVID-19_1000": {
+        "train": "./dataset/fewshot/COVID-19_1000/train.json",
+        "dev": "./dataset/COVID-19/dev.json"
+    },
+    "COVID-19_1000AC": {
+        "train": "./dataset/fewshot/COVID-19_1000/train.json",
+        "dev": "./dataset/COVID-19/dev.json",
+        "lexicon_path": "./dataset/COVID-19/ner_final"
+    },
+    "COVID-19_2000": {
+        "train": "./dataset/fewshot/COVID-19_2000/train.json",
+        "dev": "./dataset/COVID-19/dev.json"
+    },
+    "COVID-19_2000AC": {
+        "train": "./dataset/fewshot/COVID-19_2000/train.json",
+        "dev": "./dataset/COVID-19/dev.json",
+        "lexicon_path": "./dataset/COVID-19/ner_final"
+    },
     "SAS": {
         "train": "./dataset/SAS/s_train_zh.json",
         "dev": "./dataset/SAS/s_eval_zh.json",

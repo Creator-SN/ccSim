@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers import BertConfig
+from transformers import BertConfig, BertModel
 from CC.models.ACBert.modeling_acbert import ACBertModel
 
 
@@ -17,6 +17,8 @@ class ACBert(nn.Module):
             word_embedding_size, self.config.word_embed_dim)
         self.classifier = nn.Linear(self.config.hidden_size * 2, 2)
         self.tokenizer = tokenizer
+
+        self.word_encoder = BertModel.from_pretrained(pre_trained_path, config=self.config)
 
         self.cos_sim = nn.CosineSimilarity(dim=-1)
 
@@ -50,6 +52,7 @@ class ACBert(nn.Module):
     def forward(self, **args):
         bce_loss = nn.BCELoss()
         mse_loss = nn.MSELoss()
+        ce_loss = nn.CrossEntropyLoss()
 
         if 'fct_loss' in args:
             if args['fct_loss'] == 'BCELoss':
@@ -88,11 +91,54 @@ class ACBert(nn.Module):
         u = self.pooling(h1_1, mask1)
         v = self.pooling(h1_2, mask2)
         cos_sim = self.cos_sim(u, v)
+        
+        max_word_len = self.config.max_word_len
+        
+        # batch_size * 2 * word_len -> batch_size * word_len
+        s1_words = args['sequence_word_ids'][:, 0]
+        s2_words = args['sequence_word_ids'][:, 1]
+        s1_mask = args['sequence_word_mask'][:, 0]
+        s2_mask = args['sequence_word_mask'][:, 1]
 
-        final_score = (pred + cos_sim) / 2
+        # batch_size * word_len * dim
+        s1_words_embeddings = self.word_embeddings(s1_words)
+        s2_words_embeddings = self.word_embeddings(s2_words)
+
+        # batch_size * (word_len + 1) * dim
+        s1_words_seq_feature = torch.cat([o1.unsqueeze(1), s1_words_embeddings], dim=1)
+        s2_words_seq_feature = torch.cat([o2.unsqueeze(1), s2_words_embeddings], dim=1)
+        
+        # batch_size * (word_len + 1)
+        s1_mask_plus = torch.cat([torch.tensor([1]).repeat(s1_mask.shape[0]).unsqueeze(-1).to(s1_mask.device), s1_mask], dim=1)
+        s2_mask_plus = torch.cat([torch.tensor([1]).repeat(s2_mask.shape[0]).unsqueeze(-1).to(s2_mask.device), s2_mask], dim=1)
+
+        # batch_size × 2 * (word_len + 1)
+        words_seq_feature = torch.cat([s1_words_seq_feature, s2_words_seq_feature], dim=0)
+        words_mask = torch.cat([s1_mask_plus, s2_mask_plus], dim=0)
+
+        unsupervised_labels = torch.arange(
+            0, words_seq_feature.shape[0], dtype=torch.long).to(words_seq_feature.device)
+        
+        z1_outputs = self.word_encoder(attention_mask=words_mask, inputs_embeds=words_seq_feature)
+        z2_outputs = self.word_encoder(attention_mask=words_mask, inputs_embeds=words_seq_feature)
+
+        z1_cls, z2_cls = torch.sum(z1_outputs[0], dim=1), torch.sum(z2_outputs[0], dim=1)
+
+        sim_matrix = self.cos_sim(z1_cls.unsqueeze(
+            1), z2_cls.unsqueeze(0))
+
+        word_loss = ce_loss(sim_matrix, unsupervised_labels)
+
+        u = s1_words_seq_feature * s1_mask_plus.unsqueeze(-1).float()
+        u_ = torch.sum(u, dim=1)
+        v = s2_words_seq_feature * s2_mask_plus.unsqueeze(-1).float()
+        v_ = torch.sum(v, dim=1)
+        word_cos_sim = self.cos_sim(u_, v_)
+
+        final_score = (pred + cos_sim + 0.2 * word_cos_sim) / 2.2
         
         if 'labels' in args:
-            loss = mse_loss(cos_sim, args['labels'].view(-1)) + bce_loss(pred, args['labels'].float().view(-1))
+            loss = mse_loss(cos_sim, args['labels'].view(-1)) + bce_loss(pred, args['labels'].float().view(-1)) + 0.2 * mse_loss(word_cos_sim, args['labels'].view(-1) * 0.2) + word_loss
         else:
             loss = 0
 

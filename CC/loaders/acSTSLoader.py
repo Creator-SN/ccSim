@@ -10,7 +10,7 @@ from torch.utils.data import Dataset
 
 
 class ACSTSDataset(Dataset):
-    def __init__(self, tokenizer, file_name, lexicon_path, padding_length=128, max_word_len=30, model_type='interactive', shuffle=True):
+    def __init__(self, tokenizer, file_name, lexicon_path, padding_length=128, max_word_len=18, model_type='interactive', shuffle=True):
         self.tokenizer = tokenizer
         self.padding_length = padding_length
         self.model_type = model_type
@@ -81,7 +81,7 @@ class ACSTSDataset(Dataset):
         self.matched_word_mask_list = []
         self.sequence_word_ids_list = []
         self.sequence_word_mask_list = []
-        cache_path = './tmp/{}_matched_word_{}'.format(self.file_name.replace('/', '___'), self.padding_length)
+        cache_path = './tmp/{}_matched_word_{}_{}'.format(self.file_name.replace('/', '___'), self.padding_length, self.max_word_len)
         if os.path.exists(cache_path):
             with open(os.path.join(cache_path, 'ids'), 'rb') as f:
                 self.matched_word_ids_list = pickle.load(f)
