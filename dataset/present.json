@@ -241,5 +241,9 @@
     "RemixCL": {
         "train": "./dataset/CHIP-STS/remix_cl.txt",
         "dev": "./dataset/CHIP-STS/CHIP-STS_Dev.txt"
+    },
+    "Boss": {
+        "train": "./dataset/Boss/train.json",
+        "dev": "./dataset/Boss/dev.json"
     }
 }

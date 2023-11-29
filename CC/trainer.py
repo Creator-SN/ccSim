@@ -65,7 +65,10 @@ class Trainer(ITrainer):
         for epoch in range(num_epochs):
             train_count = 0
             train_loss = 0
-            train_acc = []
+            tp = 0
+            fp = 0
+            fn = 0
+            tn = 0
 
             train_iter = tqdm(self.train_loader)
             self.model.train()
@@ -94,17 +97,23 @@ class Trainer(ITrainer):
 
                 gold = it['labels']
                 p = (pred > 0.5).float()
-                train_acc.append((gold == p).float().mean().item())
+                tp = ((gold == 1) & (p == 1)).sum().item()
+                fp = ((gold == 0) & (p == 1)).sum().item()
+                fn = ((gold == 1) & (p == 0)).sum().item()
+                tn = ((gold == 0) & (p == 0)).sum().item()
 
                 train_iter.set_description(
                     'Train: {}/{}'.format(epoch + 1, num_epochs))
                 train_iter.set_postfix(
-                    train_loss=train_loss / train_count, train_acc=np.mean(train_acc))
+                    train_loss=train_loss / train_count, train_acc=(tp + tn) / (tp + tn + fp + fn), precision=tp / (tp + fp), recall=tp / (tp + fn), f1=2 * tp / (2 * tp + fp + fn))
 
             self.analysis.append_train_record({
                 'epoch': epoch + 1,
                 'train_loss': train_loss / train_count,
-                'train_acc': np.mean(train_acc)
+                'train_acc': (tp + tn) / (tp + tn + fp + fn),
+                'precision': tp / (tp + fp),
+                'recall': tp / (tp + fn),
+                'f1': 2 * tp / (2 * tp + fp + fn)
             })
 
             model_uid = self.save_model(train_step)
@@ -135,7 +144,10 @@ class Trainer(ITrainer):
         with torch.no_grad():
             eval_count = 0
             eval_loss = 0
-            eval_acc = []
+            tp = 0
+            fp = 0
+            fn = 0
+            tn = 0
             X = []
             Y = []
 
@@ -159,17 +171,23 @@ class Trainer(ITrainer):
                 p = (pred > 0.5).float()
                 X += p.long().tolist()
                 Y += gold.tolist()
-                eval_acc.append((gold == p).float().mean().item())
+                tp = ((gold == 1) & (p == 1)).sum().item()
+                fp = ((gold == 0) & (p == 1)).sum().item()
+                fn = ((gold == 1) & (p == 0)).sum().item()
+                tn = ((gold == 0) & (p == 0)).sum().item()
 
                 eval_iter.set_description(
                     f'Eval: {epoch + 1}')
                 eval_iter.set_postfix(
-                    eval_loss=eval_loss / eval_count, eval_acc=np.mean(eval_acc))
+                    eval_loss=eval_loss / eval_count, eval_acc=(tp + tn) / (tp + tn + fp + fn), precision=tp / (tp + fp), recall=tp / (tp + fn), f1=2 * tp / (2 * tp + fp + fn))
 
             self.analysis.append_eval_record({
                 'epoch': epoch + 1,
                 'eval_loss': eval_loss / eval_count,
-                'eval_acc': np.mean(eval_acc)
+                'eval_acc': (tp + tn) / (tp + tn + fp + fn),
+                'precision': tp / (tp + fp),
+                'recall': tp / (tp + fn),
+                'f1': 2 * tp / (2 * tp + fp + fn)
             })
         
         if resume_path is not None:

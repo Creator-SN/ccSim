@@ -16,6 +16,8 @@ from CC.models.x import XSSBert
 from CC.models.msim import MSIM
 from CC.models.simcse import SIMCSE
 from CC.models.ACBert import ACBert
+from CC.models.ACErnie import ACErnie
+from CC.models.ernie import Ernie
 
 
 class AutoModel(IModel):
@@ -35,6 +37,12 @@ class AutoModel(IModel):
         roberta_pre_trained_path = self.from_pretrained if self.from_pretrained is not None else './model/roberta_chinese_base/pytorch_model.bin'
         xlnet_config_path = './model/chinese-xlnet-base/config.json'
         xlnet_pre_trained_path = self.from_pretrained if self.from_pretrained is not None else './model/chinese-xlnet-base/pytorch_model.bin'
+        ernie3_config_path = './model/ernie-3.0-base-zh/config.json'
+        ernie3_pre_trained_path = self.from_pretrained if self.from_pretrained is not None else './model/ernie-3.0-base-zh/pytorch_model.bin'
+        ernie2_config_path = './model/ernie-2.0-base-zh/config.json'
+        ernie2_pre_trained_path = self.from_pretrained if self.from_pretrained is not None else './model/ernie-2.0-base-chinese/pytorch_model.bin'
+        ernie_config_path = './model/ernie-1.0-base-zh/config.json'
+        ernie_pre_trained_path = self.from_pretrained if self.from_pretrained is not None else './model/ernie-1.0-base-zh'
         if model_name == 'bert':
             self.model = Bert(tokenizer=self.tokenizer, config_path=bert_config_path,
                               pre_trained_path=bert_pre_trained_path)
@@ -84,11 +92,27 @@ class AutoModel(IModel):
         elif model_name == 'simcse':
             self.model = SIMCSE(
                 tokenizer=self.tokenizer, config_path=bert_config_path, pre_trained_path=bert_pre_trained_path)
+        elif model_name == 'ernie3':
+            self.model = Ernie(tokenizer=self.tokenizer, config_path=ernie3_config_path,
+                               pre_trained_path=ernie3_pre_trained_path)
+        elif model_name == 'ernie2':
+            self.model = Ernie(tokenizer=self.tokenizer, config_path=ernie2_config_path,
+                               pre_trained_path=ernie2_pre_trained_path)
+        elif model_name == 'ernie':
+            self.model = Ernie(tokenizer=self.tokenizer, config_path=ernie_config_path,
+                               pre_trained_path=ernie_pre_trained_path)
         elif model_name == 'acbert':
             import pickle
-            with open('./embedding/CNSTS/simcse.numpy', 'rb') as f:
+            with open('./embedding/CNSTS/ori.numpy', 'rb') as f:
                 pretrained_embeddings = pickle.load(f)
-            self.model = ACBert(tokenizer=self.tokenizer, config_path=bert_config_path, pre_trained_path=bert_pre_trained_path, word_embedding_size=40270, pretrained_embeddings=pretrained_embeddings)
+            self.model = ACBert(tokenizer=self.tokenizer, config_path=bert_config_path, pre_trained_path=bert_pre_trained_path,
+                                word_embedding_size=40270, pretrained_embeddings=pretrained_embeddings)
+        elif model_name == 'acernie':
+            import pickle
+            with open('./embedding/CNSTS/ernie_ori3.numpy', 'rb') as f:
+                pretrained_embeddings = pickle.load(f)
+            self.model = ACErnie(tokenizer=self.tokenizer, config_path=ernie_config_path, pre_trained_path=ernie_pre_trained_path,
+                                word_embedding_size=40270, pretrained_embeddings=pretrained_embeddings)
 
     def get_model(self):
         return self.model
