@@ -245,5 +245,9 @@
     "Sentiment": {
         "train": "./dataset/sentiment/train.jsonl",
         "dev": "./dataset/sentiment/test.jsonl"
+    },
+    "Boss": {
+        "train": "./dataset/Boss/train.json",
+        "dev": "./dataset/Boss/dev.json"
     }
 }
