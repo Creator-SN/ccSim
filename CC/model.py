@@ -18,17 +18,22 @@ from CC.models.simcse import SIMCSE
 from CC.models.ACBert import ACBert
 from CC.models.ACErnie import ACErnie
 from CC.models.ernie import Ernie
+import os
+import pickle
+import numpy as np
+from tqdm import tqdm
+from transformers import AutoTokenizer, AutoModel as am
 
 
 class AutoModel(IModel):
 
-    def __init__(self, tokenizer, model_name, from_pretrained=None):
+    def __init__(self, tokenizer, model_name, from_pretrained=None, matched_word_vocab_file=None, emb_pretrained_path=None):
         self.tokenizer = tokenizer
         self.model_name = model_name
         self.from_pretrained = from_pretrained
-        self.load_model(model_name)
+        self.load_model(model_name, matched_word_vocab_file, emb_pretrained_path)
 
-    def load_model(self, model_name):
+    def load_model(self, model_name, matched_word_vocab_file=None, emb_pretrained_path=None):
         bert_config_path = './model/chinese_wwm_ext/bert_config.json'
         bert_pre_trained_path = self.from_pretrained if self.from_pretrained is not None else './model/chinese_wwm_ext/pytorch_model.bin'
         albert_config_path = './model/albert_chinese_base/config.json'
@@ -102,17 +107,58 @@ class AutoModel(IModel):
             self.model = Ernie(tokenizer=self.tokenizer, config_path=ernie_config_path,
                                pre_trained_path=ernie_pre_trained_path)
         elif model_name == 'acbert':
-            import pickle
-            with open('./embedding/CNSTS/ori.numpy', 'rb') as f:
-                pretrained_embeddings = pickle.load(f)
+            assert matched_word_vocab_file is not None
+            assert emb_pretrained_path is not None
+            embedding_size, embeddings = AutoModel.get_matched_word_embeddings(matched_word_vocab_file, emb_pretrained_path)
             self.model = ACBert(tokenizer=self.tokenizer, config_path=bert_config_path, pre_trained_path=bert_pre_trained_path,
-                                word_embedding_size=40270, pretrained_embeddings=pretrained_embeddings)
+                                word_embedding_size=embedding_size, pretrained_embeddings=embeddings)
         elif model_name == 'acernie':
-            import pickle
-            with open('./embedding/CNSTS/ernie_ori3.numpy', 'rb') as f:
-                pretrained_embeddings = pickle.load(f)
+            assert matched_word_vocab_file is not None
+            assert emb_pretrained_path is not None
+            embedding_size, embeddings = AutoModel.get_matched_word_embeddings(matched_word_vocab_file, emb_pretrained_path)
             self.model = ACErnie(tokenizer=self.tokenizer, config_path=ernie_config_path, pre_trained_path=ernie_pre_trained_path,
-                                word_embedding_size=40270, pretrained_embeddings=pretrained_embeddings)
+                                word_embedding_size=embedding_size, pretrained_embeddings=embeddings)
+    
+    @staticmethod
+    def get_matched_word_embeddings(matched_word_vocab_file, emb_pretrained_path):
+        file_name = os.path.basename(matched_word_vocab_file)
+        cache_path = f'./embedding/ori_{file_name}'
+        if os.path.exists(cache_path):
+            with open(cache_path, 'rb') as f:
+                pretrained_embeddings = pickle.load(f)
+            return pretrained_embeddings.shape[0], pretrained_embeddings
+        tokenizer = AutoTokenizer.from_pretrained(emb_pretrained_path)
+        model = am.from_pretrained(emb_pretrained_path)
+        BATCH_SIZE = 64
+
+        model.eval()
+        model.cuda()
+        
+        with open(matched_word_vocab_file) as f:
+            ori_list = f.readlines()
+
+        result_list = []
+
+        result_list.append([0 for _ in range(768)])
+
+        num_batches = len(ori_list) / BATCH_SIZE if len(ori_list) % BATCH_SIZE == 0 else int(len(ori_list) / BATCH_SIZE + 1)
+
+        for idx in tqdm(range(num_batches)):
+            lines = ori_list[idx*BATCH_SIZE : (idx+1)*BATCH_SIZE]
+            entity_list = [line.split(',')[0] for line in lines]
+            T = tokenizer(entity_list, padding=True, truncation=True, return_tensors="pt")
+            T = {k: v.cuda() for k, v in T.items()}
+            output = model(**T)
+            result_list += output.pooler_output.tolist()
+
+        if not os.path.exists(f'./embedding'):
+            os.mkdir(f'./embedding')
+
+        result_list_num = np.array(result_list)
+
+        with open(cache_path, 'wb') as f:
+            pickle.dump(result_list_num, f, 2)
+        return len(ori_list) + 1, result_list_num
 
     def get_model(self):
         return self.model

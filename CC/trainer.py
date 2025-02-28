@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 class Trainer(ITrainer):
 
-    def __init__(self, tokenizer, loader_name, data_path, model_name="bert",  model_type="interactive", from_pretrained=None, data_present_path="./dataset/present.json", padding_length=50, batch_size=16, batch_size_eval=64, eval_mode='dev', task_name='Sim'):
+    def __init__(self, tokenizer, loader_name, data_path, model_name="bert",  model_type="interactive", from_pretrained=None, data_present_path="./dataset/present.json", matched_word_vocab_file=None, emb_pretrained_path=None, padding_length=50, batch_size=16, batch_size_eval=64, eval_mode='dev', task_name='Sim'):
         self.loader_name = loader_name
         self.model_name = model_name
         self.model_type = model_type
@@ -23,6 +23,8 @@ class Trainer(ITrainer):
         self.data_path = data_path
         self.task_name = task_name
         self.padding_length = padding_length
+        self.matched_word_vocab_file = matched_word_vocab_file
+        self.emb_pretrained_path = emb_pretrained_path
         self.dataloader_init(tokenizer, loader_name, data_path, model_type,
                              data_present_path, padding_length, batch_size, batch_size_eval, eval_mode)
         self.model_init(tokenizer, model_name)
@@ -30,7 +32,7 @@ class Trainer(ITrainer):
 
     def model_init(self, tokenizer, model_name):
         print('AutoModel Choose Model: {}\n'.format(model_name))
-        a = AutoModel(tokenizer, model_name, self.from_pretrained)
+        a = AutoModel(tokenizer, model_name, self.from_pretrained, matched_word_vocab_file=self.matched_word_vocab_file, emb_pretrained_path=self.emb_pretrained_path)
         self.model = a()
 
     def dataloader_init(self, tokenizer, loader_name, data_path, model_type, data_present_path, padding_length, batch_size, batch_size_eval, eval_mode):
