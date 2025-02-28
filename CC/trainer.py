@@ -38,6 +38,8 @@ class Trainer(ITrainer):
     def dataloader_init(self, tokenizer, loader_name, data_path, model_type, data_present_path, padding_length, batch_size, batch_size_eval, eval_mode):
         d = AutoDataloader(tokenizer, loader_name, data_path,
                            model_type, data_present_path, padding_length)
+        if self.matched_word_vocab_file is None and 'lexicon_path' in d.data_path:
+            self.matched_word_vocab_file = d.data_path['lexicon_path']
         self.train_loader, self.eval_loader = d(
             batch_size, batch_size_eval, eval_mode)
     
@@ -107,15 +109,15 @@ class Trainer(ITrainer):
                 train_iter.set_description(
                     'Train: {}/{}'.format(epoch + 1, num_epochs))
                 train_iter.set_postfix(
-                    train_loss=train_loss / train_count, train_acc=(tp + tn) / (tp + tn + fp + fn), precision=tp / (tp + fp), recall=tp / (tp + fn), f1=2 * tp / (2 * tp + fp + fn))
+                    train_loss=train_loss / train_count, train_acc=(tp + tn + 1e-9) / (tp + tn + fp + fn + 1e-9), precision=tp / (tp + fp + 1e-9), recall=tp / (tp + fn + 1e-9), f1=2 * tp / (2 * tp + fp + fn + 1e-9))
 
             self.analysis.append_train_record({
                 'epoch': epoch + 1,
                 'train_loss': train_loss / train_count,
-                'train_acc': (tp + tn) / (tp + tn + fp + fn),
-                'precision': tp / (tp + fp),
-                'recall': tp / (tp + fn),
-                'f1': 2 * tp / (2 * tp + fp + fn)
+                'train_acc': (tp + tn) / (tp + tn + fp + fn + 1e-9),
+                'precision': tp / (tp + fp + 1e-9),
+                'recall': tp / (tp + fn + 1e-9),
+                'f1': 2 * tp / (2 * tp + fp + fn + 1e-9)
             })
 
             model_uid = self.save_model(train_step)
@@ -181,15 +183,15 @@ class Trainer(ITrainer):
                 eval_iter.set_description(
                     f'Eval: {epoch + 1}')
                 eval_iter.set_postfix(
-                    eval_loss=eval_loss / eval_count, eval_acc=(tp + tn) / (tp + tn + fp + fn), precision=tp / (tp + fp), recall=tp / (tp + fn), f1=2 * tp / (2 * tp + fp + fn))
+                    eval_loss=eval_loss / eval_count, eval_acc=(tp + tn) / (tp + tn + fp + fn + 1e-9), precision=tp / (tp + fp + 1e-9), recall=tp / (tp + fn + 1e-9), f1=2 * tp / (2 * tp + fp + fn + 1e-9))
 
             self.analysis.append_eval_record({
                 'epoch': epoch + 1,
                 'eval_loss': eval_loss / eval_count,
-                'eval_acc': (tp + tn) / (tp + tn + fp + fn),
-                'precision': tp / (tp + fp),
-                'recall': tp / (tp + fn),
-                'f1': 2 * tp / (2 * tp + fp + fn)
+                'eval_acc': (tp + tn) / (tp + tn + fp + fn + 1e-9),
+                'precision': tp / (tp + fp + 1e-9),
+                'recall': tp / (tp + fn + 1e-9),
+                'f1': 2 * tp / (2 * tp + fp + fn + 1e-9)
             })
         
         if resume_path is not None:
