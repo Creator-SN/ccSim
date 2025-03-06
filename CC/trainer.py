@@ -11,6 +11,7 @@ from CC.model import AutoModel
 from CC.loader import AutoDataloader
 from CC.analysis import Analysis
 from tqdm import tqdm
+from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
 
 
 class Trainer(ITrainer):
@@ -71,10 +72,8 @@ class Trainer(ITrainer):
             train_count = 0
             train_loss = 0
             train_acc = []
-            tp = 0
-            fp = 0
-            fn = 0
-            tn = 0
+            pred_list = []
+            gold_list = []
 
             train_iter = tqdm(self.train_loader)
             self.model.train()
@@ -89,7 +88,7 @@ class Trainer(ITrainer):
                     it['labels'] = it['labels'].float()
 
                 output = self.model(**it)
-                loss, logits = output['loss'], output['logits']
+                loss, logits, preds = output['loss'], output['logits'], output['preds']
                 loss = loss.mean()
 
                 loss.backward()
@@ -102,25 +101,26 @@ class Trainer(ITrainer):
                 train_step += 1
 
                 gold = it['labels']
-                p = (logits > 0.5).float()
-                train_acc.append((gold == p).float().mean().item())
-                tp = ((gold == 1) & (p == 1)).sum().item()
-                fp = ((gold == 0) & (p == 1)).sum().item()
-                fn = ((gold == 1) & (p == 0)).sum().item()
-                tn = ((gold == 0) & (p == 0)).sum().item()
+                pred_list += preds.view(-1).tolist()
+                gold_list += gold.view(-1).tolist()
+                train_acc.append((gold == preds).float().mean().item())
+                ACC = accuracy_score(gold_list, pred_list)
+                P = precision_score(gold_list, pred_list)
+                R = recall_score(gold_list, pred_list)
+                F1 = f1_score(gold_list, pred_list, average='macro')
 
                 train_iter.set_description(
                     'Train: {}/{}'.format(epoch + 1, num_epochs))
                 train_iter.set_postfix(
-                    train_loss=train_loss / train_count, avg_acc=np.mean(train_acc), train_acc=(tp + tn + 1e-9) / (tp + tn + fp + fn + 1e-9), precision=tp / (tp + fp + 1e-9), recall=tp / (tp + fn + 1e-9), f1=2 * tp / (2 * tp + fp + fn + 1e-9))
+                    train_loss=train_loss / train_count, avg_acc=np.mean(train_acc), train_acc=ACC, precision=P, recall=R, f1=F1)
 
             self.analysis.append_train_record({
                 'epoch': epoch + 1,
                 'train_loss': train_loss / train_count,
-                'train_acc': (tp + tn) / (tp + tn + fp + fn + 1e-9),
-                'precision': tp / (tp + fp + 1e-9),
-                'recall': tp / (tp + fn + 1e-9),
-                'f1': 2 * tp / (2 * tp + fp + fn + 1e-9)
+                'train_acc': ACC,
+                'precision': P,
+                'recall': R,
+                'f1': F1
             })
 
             model_uid = self.save_model(train_step)
@@ -151,10 +151,8 @@ class Trainer(ITrainer):
         with torch.no_grad():
             eval_count = 0
             eval_loss = 0
-            tp = 0
-            fp = 0
-            fn = 0
-            tn = 0
+            pred_list = []
+            gold_list = []
             X = []
             Y = []
             eval_acc = []
@@ -169,7 +167,7 @@ class Trainer(ITrainer):
                 it['padding_length'] = int(self.padding_length / 2)
 
                 output = self.model(**it)
-                loss, logits = output['loss'], output['logits']
+                loss, logits, preds = output['loss'], output['logits'], output['preds']
                 loss = loss.mean()
 
                 eval_loss += loss.data.item()
@@ -177,27 +175,29 @@ class Trainer(ITrainer):
 
                 gold = it['labels']
                 p = (logits > 0.5).float()
-                X += p.long().tolist()
+                X += preds.view(-1).tolist()
                 Y += gold.tolist()
                 eval_acc.append((gold == p).float().mean().item())
-                tp = ((gold == 1) & (p == 1)).sum().item()
-                fp = ((gold == 0) & (p == 1)).sum().item()
-                fn = ((gold == 1) & (p == 0)).sum().item()
-                tn = ((gold == 0) & (p == 0)).sum().item()
+                pred_list += preds.view(-1).tolist()
+                gold_list += gold.view(-1).tolist()
+                ACC = accuracy_score(gold_list, pred_list)
+                P = precision_score(gold_list, pred_list)
+                R = recall_score(gold_list, pred_list)
+                F1 = f1_score(gold_list, pred_list, average='macro')
 
                 eval_iter.set_description(
                     f'Eval: {epoch + 1}')
                 eval_iter.set_postfix(
-                    eval_loss=eval_loss / eval_count, avg_acc=np.mean(eval_acc), eval_acc=(tp + tn) / (tp + tn + fp + fn + 1e-9), precision=tp / (tp + fp + 1e-9), recall=tp / (tp + fn + 1e-9), f1=2 * tp / (2 * tp + fp + fn + 1e-9))
+                    eval_loss=eval_loss / eval_count, avg_acc=np.mean(eval_acc), eval_acc=ACC, precision=P, recall=R, f1=F1)
 
             self.analysis.append_eval_record({
                 'epoch': epoch + 1,
                 'eval_loss': eval_loss / eval_count,
-                'eval_acc': (tp + tn) / (tp + tn + fp + fn + 1e-9),
+                'eval_acc': ACC,
                 'avg_acc': np.mean(eval_acc),
-                'precision': tp / (tp + fp + 1e-9),
-                'recall': tp / (tp + fn + 1e-9),
-                'f1': 2 * tp / (2 * tp + fp + fn + 1e-9)
+                'precision': P,
+                'recall': R,
+                'f1': F1
             })
         
         if resume_path is not None:

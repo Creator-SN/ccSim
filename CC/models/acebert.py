@@ -168,5 +168,6 @@ class ACE(nn.Module):
 
         return {
             'loss': loss,
-            'logits': pred
+            'logits': pred,
+            'preds': torch.max(p_1, dim=1)[1]
         }

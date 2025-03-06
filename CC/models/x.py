@@ -241,7 +241,8 @@ class XSSBert(nn.Module):
 
             return {
                 'loss': loss,
-                'logits': pred
+                'logits': pred,
+                'preds': (pred > 0.5).long()
             }
 
         return pred

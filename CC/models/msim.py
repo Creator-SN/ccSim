@@ -320,8 +320,9 @@ class MSIM(nn.Module):
             loss = fct_loss(pred, args['labels'].view(-1))
             return {
                 'loss': loss,
-                'logits': pred
-                'scores': (predA, predB, word_feature_1_out, word_feature_2_out)
+                'logits': pred,
+                'scores': (predA, predB, word_feature_1_out, word_feature_2_out),
+                'preds': (pred > 0.5).long()
             }
 
         return pred

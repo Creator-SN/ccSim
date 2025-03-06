@@ -186,7 +186,8 @@ class BIMPM(nn.Module):
         
         return {
             'loss': loss,
-            'logits': pred
+            'logits': pred,
+            'preds': torch.max(probabilities, dim=1)[1]
         }
     
     def compute_loss(self, num_labels: int, loss_fct: str, logits, labels=None):

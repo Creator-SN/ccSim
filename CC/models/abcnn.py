@@ -67,7 +67,8 @@ class ABCNN(nn.Module):
         
         return {
             'loss': loss,
-            'logits': pred
+            'logits': pred,
+            'preds': torch.max(probabilities, dim=1)[1]
         }
 
 

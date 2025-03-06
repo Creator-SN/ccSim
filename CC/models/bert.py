@@ -62,5 +62,6 @@ class Bert(nn.Module):
 
         return {
             'loss': loss,
-            'logits': pred
+            'logits': pred,
+            'preds': torch.max(p, dim=1)[1]
         }
