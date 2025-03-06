@@ -3,7 +3,6 @@ from CC.models.bert import Bert
 from CC.models.bertlm import BertLM
 from CC.models.r2bert import R2Bert
 from CC.models.albert import Albert
-from CC.models.roberta import Roberta
 from CC.models.xlnet import XLNet
 from CC.models.wssbert import WSSBert
 from CC.models.esim import ESIM
@@ -18,6 +17,7 @@ from CC.models.simcse import SIMCSE
 from CC.models.ACBert import ACBert
 from CC.models.ACErnie import ACErnie
 from CC.models.ernie import Ernie
+from CC.models.acebert import ACE
 import os
 import pickle
 import numpy as np
@@ -27,19 +27,19 @@ from transformers import AutoTokenizer, AutoModel as am
 
 class AutoModel(IModel):
 
-    def __init__(self, tokenizer, model_name, from_pretrained=None, matched_word_vocab_file=None, emb_pretrained_path=None):
+    def __init__(self, tokenizer, model_name, from_pretrained=None, num_labels=2, matched_word_vocab_file=None, emb_pretrained_path=None):
         self.tokenizer = tokenizer
         self.model_name = model_name
+        self.num_labels = num_labels
         self.from_pretrained = from_pretrained
         self.load_model(model_name, matched_word_vocab_file, emb_pretrained_path)
 
     def load_model(self, model_name, matched_word_vocab_file=None, emb_pretrained_path=None):
         bert_config_path = './model/chinese_wwm_ext/bert_config.json'
         bert_pre_trained_path = self.from_pretrained if self.from_pretrained is not None else './model/chinese_wwm_ext/pytorch_model.bin'
+        bert_pre_trained_dir = self.from_pretrained if self.from_pretrained is not None else '/home/lpc/models/chinese-bert-wwm-ext/'
         albert_config_path = './model/albert_chinese_base/config.json'
         albert_pre_trained_path = self.from_pretrained if self.from_pretrained is not None else './model/albert_chinese_base/pytorch_model.bin'
-        roberta_config_path = '/home/lpc/models/chinese-roberta-wwm-ext/config.json'
-        roberta_pre_trained_path = self.from_pretrained if self.from_pretrained is not None else '/home/lpc/models/chinese-roberta-wwm-ext/pytorch_model.bin'
         xlnet_config_path = './model/chinese-xlnet-base/config.json'
         xlnet_pre_trained_path = self.from_pretrained if self.from_pretrained is not None else './model/chinese-xlnet-base/pytorch_model.bin'
         ernie3_config_path = './model/ernie-3.0-base-zh/config.json'
@@ -49,8 +49,13 @@ class AutoModel(IModel):
         ernie_config_path = './model/ernie-1.0-base-zh/config.json'
         ernie_pre_trained_path = self.from_pretrained if self.from_pretrained is not None else './model/ernie-1.0-base-zh'
         if model_name == 'bert':
-            self.model = Bert(tokenizer=self.tokenizer, config_path=bert_config_path,
-                              pre_trained_path=bert_pre_trained_path)
+            self.model = Bert(tokenizer=self.tokenizer, config_path='/home/lpc/models/chinese-bert-wwm-ext/',
+                              pre_trained_path='/home/lpc/models/chinese-bert-wwm-ext/', num_labels=self.num_labels)
+        elif model_name == 'macbert':
+            self.model = Bert(tokenizer=self.tokenizer, config_path='/model/Erlangshen-MacBERT-325M-NLI-Chinese/',
+                              pre_trained_path='/model/Erlangshen-MacBERT-325M-NLI-Chinese/', num_labels=self.num_labels)
+        elif model_name == 'ace':
+            self.model = ACE(tokenizer=self.tokenizer, config_path=bert_pre_trained_dir, pre_trained_path=bert_pre_trained_dir, num_labels=self.num_labels)
         elif model_name == 'bertlm':
             self.model = BertLM(tokenizer=self.tokenizer, config_path=bert_config_path,
                                 pre_trained_path=bert_pre_trained_path)
@@ -61,8 +66,8 @@ class AutoModel(IModel):
             self.model = Albert(tokenizer=self.tokenizer, config_path=albert_config_path,
                                 pre_trained_path=albert_pre_trained_path)
         elif model_name == 'roberta':
-            self.model = Roberta(tokenizer=self.tokenizer, config_path=roberta_config_path,
-                                 pre_trained_path=roberta_pre_trained_path)
+            self.model = Bert(tokenizer=self.tokenizer, config_path='/home/lpc/models/chinese-roberta-wwm-ext/',
+                                 pre_trained_path='/home/lpc/models/chinese-roberta-wwm-ext/', num_labels=self.num_labels)
         elif model_name == 'xlnet':
             self.model = XLNet(tokenizer=self.tokenizer, config_path=xlnet_config_path,
                                pre_trained_path=xlnet_pre_trained_path)
@@ -70,9 +75,9 @@ class AutoModel(IModel):
             self.model = WSSBert(
                 tokenizer=self.tokenizer, config_path=bert_config_path, pre_trained_path=bert_pre_trained_path)
         elif model_name == 'esim':
-            self.model = ESIM()
+            self.model = ESIM(num_labels=self.num_labels)
         elif model_name == 'bimpm':
-            self.model = BIMPM()
+            self.model = BIMPM(num_labels=self.num_labels)
         elif model_name == 'sbert':
             self.model = SBert(tokenizer=self.tokenizer, config_path=bert_config_path,
                                pre_trained_path=bert_pre_trained_path)
@@ -99,13 +104,13 @@ class AutoModel(IModel):
                 tokenizer=self.tokenizer, config_path=bert_config_path, pre_trained_path=bert_pre_trained_path)
         elif model_name == 'ernie3':
             self.model = Ernie(tokenizer=self.tokenizer, config_path=ernie3_config_path,
-                               pre_trained_path=ernie3_pre_trained_path)
+                               pre_trained_path=ernie3_pre_trained_path, num_labels=self.num_labels)
         elif model_name == 'ernie2':
             self.model = Ernie(tokenizer=self.tokenizer, config_path=ernie2_config_path,
-                               pre_trained_path=ernie2_pre_trained_path)
+                               pre_trained_path=ernie2_pre_trained_path, num_labels=self.num_labels)
         elif model_name == 'ernie':
             self.model = Ernie(tokenizer=self.tokenizer, config_path=ernie_config_path,
-                               pre_trained_path=ernie_pre_trained_path)
+                               pre_trained_path=ernie_pre_trained_path, num_labels=self.num_labels)
         elif model_name == 'acbert':
             assert matched_word_vocab_file is not None
             assert emb_pretrained_path is not None

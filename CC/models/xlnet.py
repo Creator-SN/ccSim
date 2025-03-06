@@ -32,5 +32,5 @@ class XLNet(nn.Module):
 
         return {
             'loss': loss,
-            'pred': pred,
+            'logits': pred
         }

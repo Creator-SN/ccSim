@@ -67,5 +67,5 @@ class SiaGRU(nn.Module):
         
         return {
             'loss': loss,
-            'pred': pred,
+            'logits': pred
         }

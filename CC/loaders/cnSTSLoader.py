@@ -16,9 +16,14 @@ class CNSTSDataset(Dataset):
             random.shuffle(self.ori_json)
     
     def load_train(self, file_name):
-        with open(file_name, encoding='utf-8') as f:
-            ori_json = f.read()
-        ori_json = json.loads(ori_json)
+        try:
+            with open(file_name, encoding='utf-8') as f:
+                ori_json = f.read()
+            ori_json = json.loads(ori_json)
+        except:
+            with open(file_name, encoding='utf-8') as f:
+                ori_json = f.readlines()
+            ori_json = [json.loads(item) for item in ori_json]
         return ori_json
     
     def __getitem__(self, idx):

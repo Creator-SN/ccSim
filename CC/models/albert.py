@@ -31,5 +31,5 @@ class Albert(nn.Module):
 
         return {
             'loss': loss,
-            'pred': pred,
+            'logits': pred
         }

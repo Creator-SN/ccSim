@@ -7,10 +7,14 @@ from tqdm import tqdm
 from torch.utils.data import Dataset
 
 class CLDataset(Dataset):
-    def __init__(self, tokenizer, file_name, padding_length=128, model_type='interactive', shuffle=True):
+    def __init__(self, tokenizer, file_name, padding_length=128, model_type='interactive', is_enhance_feature=False, enhance_feature_lang='en', enhance_dup=0.05, enhance_stop_words=None, shuffle=True):
         self.tokenizer = tokenizer
         self.padding_length = padding_length
         self.model_type = model_type
+        self.is_enhance_feature = is_enhance_feature
+        self.enhance_feature_lang = enhance_feature_lang
+        self.dup_ratio = enhance_dup
+        self.stop_words = enhance_stop_words
         self.ori_data, self.compute_data = self.load_train(file_name)
         if shuffle:
             random.shuffle(self.compute_data)
@@ -41,8 +45,29 @@ class CLDataset(Dataset):
             result.append(line)
         return ori_data, result
     
+    def get_enhance_feature(self, text):
+        if self.enhance_feature_lang != 'cn':
+            sent_list = text.split(' ')
+        else:
+            import jieba
+            sent_list = jieba.cut(text)
+        sent_len = len(sent_list)
+        if sent_len > 0:
+            add_len = random.randrange(min(10, sent_len, max(2, int(self.dup_ratio * sent_len))))
+            dup = sorted(random.sample(range(0, sent_len-1), add_len))
+            for i in dup:
+                if self.stop_words is not None:
+                    stop_index = random.randint(0,len(self.stop_words)-1)
+                    sent_list[i] = sent_list[i] + ' ' + self.stop_words[stop_index]
+                else :
+                    sent_list[i] = sent_list[i] + ' ' + sent_list[i]
+            return ' '.join(sent_list)
+        return text
+    
     def __getitem__(self, idx):
         s1 = self.compute_data[idx]
+        if self.enhance_feature_lang:
+            s1 = self.get_enhance_feature(s1)
         s2 = s1
         if self.model_type == 'interactive':
             T = self.tokenizer(s1, s2, add_special_tokens=True, max_length=self.padding_length, padding='max_length', truncation=True)

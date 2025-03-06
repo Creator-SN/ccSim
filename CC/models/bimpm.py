@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class BIMPM(nn.Module):
-    def __init__(self, embeddings=None, hidden_size=100, num_perspective=20, class_size=2):
+    def __init__(self, embeddings=None, hidden_size=100, num_perspective=20, num_labels=2):
         super(BIMPM, self).__init__()
         # self.embeds_dim = embeddings.shape[1]
         self.embeds_dim = 300
@@ -18,7 +18,7 @@ class BIMPM(nn.Module):
         self.word_emb.weight.requires_grad = True
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.word_emb.to(device)
-        self.class_size = class_size
+        self.num_labels = num_labels
         self.device = device
         # ----- Context Representation Layer -----
         self.context_LSTM = nn.LSTM(
@@ -41,7 +41,7 @@ class BIMPM(nn.Module):
         )
         # ----- Prediction Layer -----
         self.pred_fc1 = nn.Linear(self.hidden_size * 4, self.hidden_size * 2)
-        self.pred_fc2 = nn.Linear(self.hidden_size * 2, self.class_size)
+        self.pred_fc2 = nn.Linear(self.hidden_size * 2, self.num_labels)
         self.reset_parameters()
 
 
@@ -80,15 +80,8 @@ class BIMPM(nn.Module):
         return F.dropout(v, p=0.1, training=self.training)
 
     def forward(self, **args):
-        if 'fct_loss' in args:
-            if args['fct_loss'] == 'BCELoss':
-                fct_loss = nn.BCELoss()
-            elif args['fct_loss'] == 'CrossEntropyLoss':
-                fct_loss = nn.CrossEntropyLoss()
-            elif args['fct_loss'] == 'MSELoss':
-                fct_loss = nn.MSELoss()
-        else:
-            fct_loss = nn.MSELoss()
+        if 'fct_loss' not in args:
+            args['fct_loss'] = 'MSELoss'
         
         self.context_LSTM.flatten_parameters()
         self.aggregation_LSTM.flatten_parameters()
@@ -187,14 +180,46 @@ class BIMPM(nn.Module):
         x = self.pred_fc2(x)
         probabilities = nn.functional.softmax(x, dim=-1)
 
-        loss = fct_loss(probabilities[:, 1], args['labels'].float())
+        loss = self.compute_loss(self.num_labels, args['fct_loss'], x, args['labels'])
 
         pred = probabilities[:,1]
         
         return {
             'loss': loss,
-            'pred': pred,
+            'logits': pred
         }
+    
+    def compute_loss(self, num_labels: int, loss_fct: str, logits, labels=None):
+        if labels is None:
+            return torch.tensor(0).to(logits.device)
+        fct_loss = nn.MSELoss()
+        if loss_fct == 'BCELoss':
+            fct_loss = nn.BCELoss()
+        elif loss_fct == 'CrossEntropyLoss':
+            fct_loss = nn.CrossEntropyLoss()
+        elif loss_fct == 'MSELoss':
+            fct_loss = nn.MSELoss()
+            
+        if num_labels == 1:
+            if loss_fct not in ['BCELoss', 'MSELoss']:
+                raise ValueError("For num_labels == 1, only BCELoss and MSELoss are allowed.")
+            pred = torch.sigmoid(logits)
+            loss = fct_loss(pred.view(-1), labels.view(-1).float())     
+
+        elif num_labels == 2:
+            if loss_fct in ['BCELoss', 'MSELoss']:
+                p = F.softmax(logits, dim=-1)
+                pred = p[:, 1]
+                loss = fct_loss(pred, labels.view(-1).float())
+            elif fct_loss == 'CrossEntropyLoss':
+                loss = fct_loss(logits, labels.view(-1))
+
+        else:  # num_labels > 2
+            if loss_fct != 'CrossEntropyLoss':
+                raise ValueError("For num_labels > 2, only CrossEntropyLoss is allowed.")
+            loss = fct_loss(logits, labels.view(-1))
+        
+        return loss
 
 # ----- Matching Layer -----
 def mp_matching_func(v1, v2, w, l=20):

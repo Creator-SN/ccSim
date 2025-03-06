@@ -26,7 +26,7 @@ class SelfAttention(nn.Module):
         return outputs
 
 class ESIM(nn.Module):
-    def __init__(self):
+    def __init__(self, num_labels=2):
         super(ESIM, self).__init__()
 #         self.args = args
         self.num_word = 21129
@@ -34,6 +34,7 @@ class ESIM(nn.Module):
         self.hidden_size = 300
         self.embeds_dim = 300
         self.linear_size = 200
+        self.num_labels = num_labels
         
         self.embeds = nn.Embedding(self.num_word, self.embeds_dim)
         self.bn_embeds = nn.BatchNorm1d(self.embeds_dim)
@@ -53,8 +54,7 @@ class ESIM(nn.Module):
             nn.ELU(inplace=True),
             nn.BatchNorm1d(self.linear_size),
             nn.Dropout(self.dropout),
-            nn.Linear(self.linear_size, 2),
-            nn.Softmax(dim=-1)
+            nn.Linear(self.linear_size, self.num_labels)
         )
 
     
@@ -90,15 +90,8 @@ class ESIM(nn.Module):
         return torch.cat([p1, p2], 1)
 
     def forward(self, **args):
-        if 'fct_loss' in args:
-            if args['fct_loss'] == 'BCELoss':
-                fct_loss = nn.BCELoss()
-            elif args['fct_loss'] == 'CrossEntropyLoss':
-                fct_loss = nn.CrossEntropyLoss()
-            elif args['fct_loss'] == 'MSELoss':
-                fct_loss = nn.MSELoss()
-        else:
-            fct_loss = nn.MSELoss()
+        if 'fct_loss' not in args:
+            args['fct_loss'] = 'MSELoss'
         
         self.lstm1.flatten_parameters()
         self.lstm2.flatten_parameters()
@@ -143,12 +136,45 @@ class ESIM(nn.Module):
         similarity = self.fc(x)
 
         out = similarity
-        loss = fct_loss(out[:, 1], args['labels'].float())
+        loss = self.compute_loss(self.num_labels, args['fct_loss'], out, args['labels'])
         
         # 记录准确率
         pred = out[:,1]
         
         return {
             'loss': loss,
-            'pred': pred,
+            'logits': pred
         }
+    
+    def compute_loss(self, num_labels: int, loss_fct: str, logits, labels=None):
+        if labels is None:
+            return torch.tensor(0).to(logits.device)
+        fct_loss = nn.MSELoss()
+        if loss_fct == 'BCELoss':
+            fct_loss = nn.BCELoss()
+        elif loss_fct == 'CrossEntropyLoss':
+            fct_loss = nn.CrossEntropyLoss()
+        elif loss_fct == 'MSELoss':
+            fct_loss = nn.MSELoss()
+            
+        if num_labels == 1:
+            if loss_fct not in ['BCELoss', 'MSELoss']:
+                raise ValueError("For num_labels == 1, only BCELoss and MSELoss are allowed.")
+            pred = torch.sigmoid(logits)
+            loss = fct_loss(pred.view(-1), labels.view(-1).float())     
+
+        elif num_labels == 2:
+            if loss_fct in ['BCELoss', 'MSELoss']:
+                p = F.softmax(logits, dim=-1)
+                pred = p[:, 1]
+                loss = fct_loss(pred, labels.view(-1).float())
+            elif fct_loss == 'CrossEntropyLoss':
+                loss = fct_loss(logits, labels.view(-1))
+
+        else:  # num_labels > 2
+            if loss_fct != 'CrossEntropyLoss':
+                raise ValueError("For num_labels > 2, only CrossEntropyLoss is allowed.")
+            loss = fct_loss(logits, labels.view(-1))
+        
+        return loss
+    

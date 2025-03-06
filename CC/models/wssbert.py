@@ -96,7 +96,7 @@ class WSSBert(nn.Module):
 
         return {
             'loss': loss,
-            'pred': pred,
+            'logits': pred
         }
 
     def get_model(self):

@@ -15,11 +15,12 @@ from tqdm import tqdm
 
 class Trainer(ITrainer):
 
-    def __init__(self, tokenizer, loader_name, data_path, model_name="bert",  model_type="interactive", from_pretrained=None, data_present_path="./dataset/present.json", matched_word_vocab_file=None, emb_pretrained_path=None, padding_length=50, batch_size=16, batch_size_eval=64, eval_mode='dev', task_name='Sim'):
+    def __init__(self, tokenizer, loader_name, data_path, model_name="bert",  model_type="interactive", from_pretrained=None, data_present_path="./dataset/present.json", matched_word_vocab_file=None, emb_pretrained_path=None, padding_length=50, batch_size=16, batch_size_eval=64, num_labels=2, eval_mode='dev', task_name='Sim'):
         self.loader_name = loader_name
         self.model_name = model_name
         self.model_type = model_type
         self.from_pretrained = from_pretrained
+        self.num_labels = num_labels
         self.data_path = data_path
         self.task_name = task_name
         self.padding_length = padding_length
@@ -32,7 +33,7 @@ class Trainer(ITrainer):
 
     def model_init(self, tokenizer, model_name):
         print('AutoModel Choose Model: {}\n'.format(model_name))
-        a = AutoModel(tokenizer, model_name, self.from_pretrained, matched_word_vocab_file=self.matched_word_vocab_file, emb_pretrained_path=self.emb_pretrained_path)
+        a = AutoModel(tokenizer, model_name, self.from_pretrained, self.num_labels, matched_word_vocab_file=self.matched_word_vocab_file, emb_pretrained_path=self.emb_pretrained_path)
         self.model = a()
 
     def dataloader_init(self, tokenizer, loader_name, data_path, model_type, data_present_path, padding_length, batch_size, batch_size_eval, eval_mode):
@@ -69,6 +70,7 @@ class Trainer(ITrainer):
         for epoch in range(num_epochs):
             train_count = 0
             train_loss = 0
+            train_acc = []
             tp = 0
             fp = 0
             fn = 0
@@ -87,7 +89,7 @@ class Trainer(ITrainer):
                     it['labels'] = it['labels'].float()
 
                 output = self.model(**it)
-                loss, pred = output['loss'], output['pred']
+                loss, logits = output['loss'], output['logits']
                 loss = loss.mean()
 
                 loss.backward()
@@ -100,7 +102,8 @@ class Trainer(ITrainer):
                 train_step += 1
 
                 gold = it['labels']
-                p = (pred > 0.5).float()
+                p = (logits > 0.5).float()
+                train_acc.append((gold == p).float().mean().item())
                 tp = ((gold == 1) & (p == 1)).sum().item()
                 fp = ((gold == 0) & (p == 1)).sum().item()
                 fn = ((gold == 1) & (p == 0)).sum().item()
@@ -109,7 +112,7 @@ class Trainer(ITrainer):
                 train_iter.set_description(
                     'Train: {}/{}'.format(epoch + 1, num_epochs))
                 train_iter.set_postfix(
-                    train_loss=train_loss / train_count, train_acc=(tp + tn + 1e-9) / (tp + tn + fp + fn + 1e-9), precision=tp / (tp + fp + 1e-9), recall=tp / (tp + fn + 1e-9), f1=2 * tp / (2 * tp + fp + fn + 1e-9))
+                    train_loss=train_loss / train_count, avg_acc=np.mean(train_acc), train_acc=(tp + tn + 1e-9) / (tp + tn + fp + fn + 1e-9), precision=tp / (tp + fp + 1e-9), recall=tp / (tp + fn + 1e-9), f1=2 * tp / (2 * tp + fp + fn + 1e-9))
 
             self.analysis.append_train_record({
                 'epoch': epoch + 1,
@@ -154,6 +157,7 @@ class Trainer(ITrainer):
             tn = 0
             X = []
             Y = []
+            eval_acc = []
 
             eval_iter = tqdm(self.eval_loader)
             self.model.eval()
@@ -165,16 +169,17 @@ class Trainer(ITrainer):
                 it['padding_length'] = int(self.padding_length / 2)
 
                 output = self.model(**it)
-                loss, pred = output['loss'], output['pred']
+                loss, logits = output['loss'], output['logits']
                 loss = loss.mean()
 
                 eval_loss += loss.data.item()
                 eval_count += 1
 
                 gold = it['labels']
-                p = (pred > 0.5).float()
+                p = (logits > 0.5).float()
                 X += p.long().tolist()
                 Y += gold.tolist()
+                eval_acc.append((gold == p).float().mean().item())
                 tp = ((gold == 1) & (p == 1)).sum().item()
                 fp = ((gold == 0) & (p == 1)).sum().item()
                 fn = ((gold == 1) & (p == 0)).sum().item()
@@ -183,12 +188,13 @@ class Trainer(ITrainer):
                 eval_iter.set_description(
                     f'Eval: {epoch + 1}')
                 eval_iter.set_postfix(
-                    eval_loss=eval_loss / eval_count, eval_acc=(tp + tn) / (tp + tn + fp + fn + 1e-9), precision=tp / (tp + fp + 1e-9), recall=tp / (tp + fn + 1e-9), f1=2 * tp / (2 * tp + fp + fn + 1e-9))
+                    eval_loss=eval_loss / eval_count, avg_acc=np.mean(eval_acc), eval_acc=(tp + tn) / (tp + tn + fp + fn + 1e-9), precision=tp / (tp + fp + 1e-9), recall=tp / (tp + fn + 1e-9), f1=2 * tp / (2 * tp + fp + fn + 1e-9))
 
             self.analysis.append_eval_record({
                 'epoch': epoch + 1,
                 'eval_loss': eval_loss / eval_count,
                 'eval_acc': (tp + tn) / (tp + tn + fp + fn + 1e-9),
+                'avg_acc': np.mean(eval_acc),
                 'precision': tp / (tp + fp + 1e-9),
                 'recall': tp / (tp + fn + 1e-9),
                 'f1': 2 * tp / (2 * tp + fp + fn + 1e-9)

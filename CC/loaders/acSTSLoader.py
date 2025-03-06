@@ -25,9 +25,14 @@ class ACSTSDataset(Dataset):
         self.compute_match_word_list()
 
     def load_train(self, file_name):
-        with open(file_name, encoding='utf-8') as f:
-            ori_json = f.read()
-        ori_json = json.loads(ori_json)
+        if file_name.endswith('json'):
+            with open(file_name, encoding='utf-8') as f:
+                ori_json = f.read()
+            ori_json = json.loads(ori_json)
+        else:
+            with open(file_name, encoding='utf-8') as f:
+                ori_json = f.readlines()
+            ori_json = [json.loads(item) for item in ori_json]
         return ori_json
 
     def load_lexicon(self, lexicon_path):
@@ -94,7 +99,7 @@ class ACSTSDataset(Dataset):
             return True
         
         count = []
-        for idx, item in tqdm(enumerate(self.ori_json)):
+        for idx, item in tqdm(enumerate(self.ori_json), total=len(self.ori_json)):
             s1 = item['text1']
             s2 = item['text2']
             s1 = s1[:self.padding_length // 2]
