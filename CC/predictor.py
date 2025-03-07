@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 class Predictor(IPredict):
 
-    def __init__(self, tokenizer, model_name, padding_length=150, batch_size=32, resume_path=False, gpu=0):
+    def __init__(self, tokenizer, model_name, padding_length=256, batch_size=32, resume_path=False, gpu=0):
         self.tokenizer = tokenizer
         self.padding_length = padding_length
         self.batch_size = batch_size
@@ -39,11 +39,9 @@ class Predictor(IPredict):
             for key in it:
                 it[key] = self.cuda(it[key])
             outputs = self.model(**it)
-            pred_socres = outputs['pred'].tolist()
-            pred = (outputs['pred'] > 0.5).long().tolist()
+            preds = outputs['preds'].tolist()
             yield {
-                'pred': pred,
-                'pred_socres': pred_socres
+                'preds': preds
             }
 
     def cuda(self, inputX):
@@ -61,7 +59,7 @@ class Predictor(IPredict):
 
 
 class PredictDataset():
-    def __init__(self, tokenizer, sentence_pair_list, padding_length=150, input_type='interactive'):
+    def __init__(self, tokenizer, sentence_pair_list, padding_length=256, input_type='interactive'):
         self.tokenizer = tokenizer
         self.padding_length = padding_length
         self.input_type = input_type

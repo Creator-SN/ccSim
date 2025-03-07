@@ -33,6 +33,7 @@ class ACE(nn.Module):
         )
         self.dropout = nn.Dropout(classifier_dropout)
         self.classifier = nn.Linear(1 * self.config.hidden_size, self.config.num_labels)
+        self.ori_classifier = nn.Linear(1 * self.config.hidden_size, self.config.num_labels)
     
     def contrastive_loss(self, features, labels, temperature=0.1):
         """
@@ -88,35 +89,49 @@ class ACE(nn.Module):
         text_enhanced = attn_output[:, 0, :]  # 取文本增强表示
         return text_enhanced
     
-    def compute_loss(self, num_labels: int, loss_fct: str, logits, labels=None):
+    def compute_loss(self, num_labels: int, loss_fct: str, logits, labels=None, is_syn=None):
         if labels is None:
             return torch.tensor(0).to(logits.device)
-        fct_loss = nn.MSELoss()
+        
+        # 定义损失函数
         if loss_fct == 'BCELoss':
-            fct_loss = nn.BCELoss()
+            fct_loss = nn.BCELoss(reduction='none')  # 返回每个样本的损失
         elif loss_fct == 'CrossEntropyLoss':
-            fct_loss = nn.CrossEntropyLoss()
+            fct_loss = nn.CrossEntropyLoss(reduction='none')  # 返回每个样本的损失
         elif loss_fct == 'MSELoss':
-            fct_loss = nn.MSELoss()
-            
+            fct_loss = nn.MSELoss(reduction='none')  # 返回每个样本的损失
+        else:
+            raise ValueError(f"Unsupported loss function: {loss_fct}")
+        
+        # 根据 is_syn 设置权重
+        if is_syn is not None:
+            weight_mask = torch.ones_like(labels, dtype=torch.float32)  # 默认权重为 1
+            weight_mask[is_syn == 1] = 1.0  # 对于 is_syn == 1 的样本，权重设为 0.2
+        else:
+            weight_mask = torch.ones_like(labels, dtype=torch.float32)  # 如果没有 is_syn，权重为 1
+
         if num_labels == 1:
             if loss_fct not in ['BCELoss', 'MSELoss']:
                 raise ValueError("For num_labels == 1, only BCELoss and MSELoss are allowed.")
             pred = torch.sigmoid(logits)
-            loss = fct_loss(pred.view(-1), labels.view(-1).float())     
+            loss = fct_loss(pred.view(-1), labels.view(-1).float())  # 每个样本的损失 (batch_size,)
+            loss = (loss * weight_mask).mean()  # 加权后取均值
 
         elif num_labels == 2:
             if loss_fct in ['BCELoss', 'MSELoss']:
                 p = F.softmax(logits, dim=-1)
                 pred = p[:, 1]
-                loss = fct_loss(pred, labels.view(-1).float())
-            elif fct_loss == 'CrossEntropyLoss':
-                loss = fct_loss(logits, labels.view(-1))
+                loss = fct_loss(pred, labels.view(-1).float())  # 每个样本的损失 (batch_size,)
+                loss = (loss * weight_mask).mean()  # 加权后取均值
+            elif loss_fct == 'CrossEntropyLoss':
+                loss = fct_loss(logits, labels.view(-1))  # 每个样本的损失 (batch_size,)
+                loss = (loss * weight_mask).mean()  # 加权后取均值
 
         else:  # num_labels > 2
             if loss_fct != 'CrossEntropyLoss':
                 raise ValueError("For num_labels > 2, only CrossEntropyLoss is allowed.")
-            loss = fct_loss(logits, labels.view(-1))
+            loss = fct_loss(logits, labels.view(-1))  # 每个样本的损失 (batch_size,)
+            loss = (loss * weight_mask).mean()  # 加权后取均值
         
         return loss
 
@@ -145,22 +160,20 @@ class ACE(nn.Module):
         enhanced = self.compute_attn_features(t_h, te_h)
         th_pooled_output = self.dropout(th_pooled_output)
         teh_pooled_output = self.dropout(enhanced)
-        logits_1 = self.classifier(th_pooled_output)
+        logits_1 = self.classifier(th_pooled_output + teh_pooled_output)
+        logits_2 = self.ori_classifier(th_pooled_output)
         p_1 = F.softmax(logits_1, dim=-1)
         pred = p_1[:, 1]
-        logits_2 = self.classifier(teh_pooled_output)
         p_2 = F.softmax(logits_2, dim=-1)
 
         if 'labels' in args and args['labels'] is not None:
             
-            t_cl, t_labels = self.build_contrastive_matrix(t_h, t_h)
-            te_cl, te_labels = self.build_contrastive_matrix(te_h, te_h)
+            t_cl, t_labels = self.build_contrastive_matrix(th_pooled_output, teh_pooled_output)
             cl_loss_1 = self.contrastive_loss(t_cl, t_labels, 0.05)
-            cl_loss_2 = self.contrastive_loss(te_cl, te_labels, 0.05)
 
-            cls_loss_1 = self.compute_loss(self.config.num_labels, args['fct_loss'], logits_1, args['labels'])
-            cls_loss_2 = self.compute_loss(self.config.num_labels, args['fct_loss'], logits_2, args['labels'])
-            loss = cls_loss_1 + 0.5 * cls_loss_2 + 0.05 * cl_loss_2
+            cls_loss_1 = self.compute_loss(self.config.num_labels, args['fct_loss'], logits_1, args['labels'], args['is_syn'])
+            cls_loss_2 = self.compute_loss(self.config.num_labels, args['fct_loss'], logits_2, args['labels'], args['is_syn'])
+            loss = cls_loss_1 + cls_loss_2 + 0.0 * cl_loss_1
         else:
             cls_loss = torch.tensor([0.])
             cl_loss = torch.tensor([0.])
@@ -169,5 +182,5 @@ class ACE(nn.Module):
         return {
             'loss': loss,
             'logits': pred,
-            'preds': torch.max(p_1, dim=1)[1]
+            'preds': torch.max(p_1 + p_2, dim=1)[1]
         }

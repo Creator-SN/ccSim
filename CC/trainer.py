@@ -107,7 +107,7 @@ class Trainer(ITrainer):
                 ACC = accuracy_score(gold_list, pred_list)
                 P = precision_score(gold_list, pred_list)
                 R = recall_score(gold_list, pred_list)
-                F1 = f1_score(gold_list, pred_list, average='macro')
+                F1 = f1_score(gold_list, pred_list)
 
                 train_iter.set_description(
                     'Train: {}/{}'.format(epoch + 1, num_epochs))
@@ -183,7 +183,7 @@ class Trainer(ITrainer):
                 ACC = accuracy_score(gold_list, pred_list)
                 P = precision_score(gold_list, pred_list)
                 R = recall_score(gold_list, pred_list)
-                F1 = f1_score(gold_list, pred_list, average='macro')
+                F1 = f1_score(gold_list, pred_list)
 
                 eval_iter.set_description(
                     f'Eval: {epoch + 1}')

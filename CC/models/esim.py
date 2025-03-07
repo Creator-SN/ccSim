@@ -169,7 +169,7 @@ class ESIM(nn.Module):
                 p = F.softmax(logits, dim=-1)
                 pred = p[:, 1]
                 loss = fct_loss(pred, labels.view(-1).float())
-            elif fct_loss == 'CrossEntropyLoss':
+            elif loss_fct == 'CrossEntropyLoss':
                 loss = fct_loss(logits, labels.view(-1))
 
         else:  # num_labels > 2

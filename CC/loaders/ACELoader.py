@@ -34,6 +34,10 @@ class ACEDataset(Dataset):
     def __getitem__(self, idx):
         idx = self.random_idx_list[idx]
         item = self.ori_json[idx]
+        if 'is_syn' in item:
+            is_syn = 1
+        else:
+            is_syn = 0
         text1 = item['text1']
         text2 = item['text2']
         labels = int(item['label'])
@@ -67,7 +71,8 @@ class ACEDataset(Dataset):
             'te_ids': torch.tensor(T_e['input_ids']),
             'te_masks': torch.tensor(T_e['attention_mask']),
             'te_types': torch.tensor(T_e['token_type_ids']),
-            'labels': torch.tensor(labels)
+            'labels': torch.tensor(labels),
+            'is_syn': torch.tensor(is_syn)
         }
 
     def __len__(self):

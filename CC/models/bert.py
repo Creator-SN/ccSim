@@ -23,7 +23,7 @@ class Bert(nn.Module):
             fct_loss = nn.CrossEntropyLoss()
         elif loss_fct == 'MSELoss':
             fct_loss = nn.MSELoss()
-            
+
         if num_labels == 1:
             if loss_fct not in ['BCELoss', 'MSELoss']:
                 raise ValueError("For num_labels == 1, only BCELoss and MSELoss are allowed.")
@@ -35,7 +35,7 @@ class Bert(nn.Module):
                 p = F.softmax(logits, dim=-1)
                 pred = p[:, 1]
                 loss = fct_loss(pred, labels.view(-1).float())
-            elif fct_loss == 'CrossEntropyLoss':
+            elif loss_fct == 'CrossEntropyLoss':
                 loss = fct_loss(logits, labels.view(-1))
 
         else:  # num_labels > 2

@@ -329,5 +329,89 @@
     "OCNLI_ACE_1000": {
         "train": "./dataset/OCNLI_GLM3_DA/DA_train_1000_fusion.jsonl",
         "dev": "./dataset/OCNLI_GLM3_DA/DA_dev_fusion.jsonl"
+    },
+    "CNSTS_syn_ACE_125": {
+        "train": "./dataset/CHIP-STS_GLM3_DA/DA_train_125_fusion_syn.jsonl",
+        "dev": "./dataset/CHIP-STS_GLM3_DA/DA_dev_fusion.jsonl"
+    },
+    "CNSTS_syn_ACE_250": {
+        "train": "./dataset/CHIP-STS_GLM3_DA/DA_train_250_fusion_syn.jsonl",
+        "dev": "./dataset/CHIP-STS_GLM3_DA/DA_dev_fusion.jsonl"
+    },
+    "CNSTS_syn_ACE_500": {
+        "train": "./dataset/CHIP-STS_GLM3_DA/DA_train_500_fusion_syn.jsonl",
+        "dev": "./dataset/CHIP-STS_GLM3_DA/DA_dev_fusion.jsonl"
+    },
+    "CNSTS_syn_ACE_1000": {
+        "train": "./dataset/CHIP-STS_GLM3_DA/DA_train_1000_fusion_syn.jsonl",
+        "dev": "./dataset/CHIP-STS_GLM3_DA/DA_dev_fusion.jsonl"
+    },
+    "ATEC_syn_ACE_125": {
+        "train": "./dataset/ATEC_GLM3_DA/DA_train_125_fusion_syn.jsonl",
+        "dev": "./dataset/ATEC_GLM3_DA/DA_dev_fusion.jsonl"
+    },
+    "ATEC_syn_ACE_250": {
+        "train": "./dataset/ATEC_GLM3_DA/DA_train_250_fusion_syn.jsonl",
+        "dev": "./dataset/ATEC_GLM3_DA/DA_dev_fusion.jsonl"
+    },
+    "ATEC_syn_ACE_500": {
+        "train": "./dataset/ATEC_GLM3_DA/DA_train_500_fusion_syn.jsonl",
+        "dev": "./dataset/ATEC_GLM3_DA/DA_dev_fusion.jsonl"
+    },
+    "ATEC_syn_ACE_1000": {
+        "train": "./dataset/ATEC_GLM3_DA/DA_train_1000_fusion_syn.jsonl",
+        "dev": "./dataset/ATEC_GLM3_DA/DA_dev_fusion.jsonl"
+    },
+    "COVID-19_syn_ACE_125": {
+        "train": "./dataset/COVID-19_GLM3_DA/DA_train_125_fusion_syn.jsonl",
+        "dev": "./dataset/COVID-19_GLM3_DA/DA_dev_fusion.jsonl"
+    },
+    "COVID-19_syn_ACE_250": {
+        "train": "./dataset/COVID-19_GLM3_DA/DA_train_250_fusion_syn.jsonl",
+        "dev": "./dataset/COVID-19_GLM3_DA/DA_dev_fusion.jsonl"
+    },
+    "COVID-19_syn_ACE_500": {
+        "train": "./dataset/COVID-19_GLM3_DA/DA_train_500_fusion_syn.jsonl",
+        "dev": "./dataset/COVID-19_GLM3_DA/DA_dev_fusion.jsonl"
+    },
+    "COVID-19_syn_ACE_1000": {
+        "train": "./dataset/COVID-19_GLM3_DA/DA_train_1000_fusion_syn.jsonl",
+        "dev": "./dataset/COVID-19_GLM3_DA/DA_dev_fusion.jsonl"
+    },
+    "BQ_syn_ACE_125": {
+        "train": "./dataset/BQ_GLM3_DA/DA_train_125_fusion_syn.jsonl",
+        "dev": "./dataset/BQ_GLM3_DA/DA_dev_fusion.jsonl"
+    },
+    "BQ_syn_ACE_250": {
+        "train": "./dataset/BQ_GLM3_DA/DA_train_250_fusion_syn.jsonl",
+        "dev": "./dataset/BQ_GLM3_DA/DA_dev_fusion.jsonl"
+    },
+    "BQ_syn_ACE_500": {
+        "train": "./dataset/BQ_GLM3_DA/DA_train_500_fusion_syn.jsonl",
+        "dev": "./dataset/BQ_GLM3_DA/DA_dev_fusion.jsonl"
+    },
+    "BQ_syn_ACE_1000": {
+        "train": "./dataset/BQ_GLM3_DA/DA_train_1000_fusion_syn.jsonl",
+        "dev": "./dataset/BQ_GLM3_DA/DA_dev_fusion.jsonl"
+    },
+    "OCNLI_syn_ACE_125": {
+        "train": "./dataset/OCNLI_GLM3_DA/DA_train_125_fusion_syn.jsonl",
+        "dev": "./dataset/OCNLI_GLM3_DA/DA_dev_fusion.jsonl"
+    },
+    "OCNLI_syn_ACE_250": {
+        "train": "./dataset/OCNLI_GLM3_DA/DA_train_250_fusion_syn.jsonl",
+        "dev": "./dataset/OCNLI_GLM3_DA/DA_dev_fusion.jsonl"
+    },
+    "OCNLI_syn_ACE_500": {
+        "train": "./dataset/OCNLI_GLM3_DA/DA_train_500_fusion_syn.jsonl",
+        "dev": "./dataset/OCNLI_GLM3_DA/DA_dev_fusion.jsonl"
+    },
+    "OCNLI_syn_ACE_1000": {
+        "train": "./dataset/OCNLI_GLM3_DA/DA_train_1000_fusion_syn.jsonl",
+        "dev": "./dataset/OCNLI_GLM3_DA/DA_dev_fusion.jsonl"
+    },
+    "ChineseRTECSE_ACE": {
+        "train": "./dataset/ChineseRTECSE/all.jsonl",
+        "dev": "./dataset/ChineseRTECSE/dev.jsonl"
     }
 }
